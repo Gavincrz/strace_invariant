@@ -73,3 +73,7 @@
 Makefile
 Makefile.in
 core
+.idea/
+CMakeLists.txt
+all_syscall.inv.gz
+cmake-build-debug/

@@ -63,7 +63,8 @@
 /* Define these shorthand notations to simplify the syscallent files. */
 #include "sysent_shorthand_defs.h"
 
-#define SEN(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name)
+#define SEN(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 0, NULL
+#define SEN_TRACE(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 1, INV_FUNC_NAME(inv_ ## syscall_name)
 
 const struct_sysent sysent0[] = {
 #include "syscallent.h"
@@ -681,6 +682,10 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 	printleader(tcp);
 	tprintf("%s(", tcp->s_ent->sys_name);
 	int res = raw(tcp) ? printargs(tcp) : tcp->s_ent->sys_func(tcp);
+	if (tcp->s_ent->invariant){
+        int count = get_inv_count(tcp);
+		tcp->s_ent->invariant_func(tcp, count);
+	}
 	fflush(tcp->outf);
 	return res;
 }
@@ -787,6 +792,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 		else
 			sys_res = tcp->s_ent->sys_func(tcp);
 	}
+
 
 	tprints(") ");
 	tabto();
@@ -923,6 +929,14 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	if (stack_trace_enabled)
 		unwind_tcb_print(tcp);
 #endif
+
+
+	if (tcp->s_ent->invariant){
+		get_syscall_args(tcp);
+		int count = count_inv(tcp);
+		tcp->s_ent->invariant_func(tcp, count);
+	}
+
 	return 0;
 }
 
@@ -1223,6 +1237,7 @@ get_scno(struct tcb *tcp)
 		s->ent.nargs = MAX_ARGS;
 		s->ent.sen = SEN_printargs;
 		s->ent.sys_func = printargs;
+		s->ent.invariant = 0;
 		s->ent.sys_name = s->buf;
 		xsprintf(s->buf, "syscall_%#" PRI_klx, shuffle_scno(tcp->scno));
 

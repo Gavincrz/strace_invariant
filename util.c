@@ -237,6 +237,28 @@ printaddr64(const uint64_t addr)
 		tprintf("%#" PRIx64, addr);
 }
 
+void
+printaddrinv(const char *varname, const kernel_ulong_t addr)
+{
+	invprintf("%s\n", varname);
+	invprintf("%#" PRIx64, addr);
+	invprints("\n1\n");
+}
+void
+printldinv(const char *varname, const kernel_ulong_t val)
+{
+    invprintf("%s\n", varname);
+    invprintf("%"PRI_kld ,val);
+    invprints("\n1\n");
+}
+void
+printluinv(const char *varname, const kernel_ulong_t val)
+{
+    invprintf("%s\n", varname);
+    invprintf("%"PRI_klu , val);
+    invprints("\n1\n");
+}
+
 #define DEF_PRINTNUM(name, type) \
 bool									\
 printnum_ ## name(struct tcb *const tcp, const kernel_ulong_t addr,	\

@@ -150,6 +150,9 @@ void fill_memory(void *ptr, size_t size);
 void tprintf(const char *, ...)
 	ATTRIBUTE_FORMAT((printf, 1, 2));
 
+void invprintf(const char *, ...)
+	ATTRIBUTE_FORMAT((printf, 1, 2));
+
 /* Make a hexdump copy of C string */
 const char *hexdump_strdup(const char *);
 

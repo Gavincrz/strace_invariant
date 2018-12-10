@@ -33,6 +33,29 @@
 #include <fcntl.h>
 #include <sys/uio.h>
 
+void print_arg_trace(struct tcb *tcp){
+	printldinv("fd", tcp->u_arg[0]);
+    printaddrinv("buf", tcp->u_arg[1]);
+    printluinv("count", tcp->u_arg[2]);
+}
+
+INV_FUNC(read)
+{
+    if (entering(tcp)) {
+		invprints("\n");
+        invprints(ENTER_HEADER(read));
+        invprintf("%d\n", count);
+        print_arg_trace(tcp);
+    } else {
+        invprints("\n");
+        invprints(EXIT_HEADER(read));
+        invprintf("%d\n", count);
+        print_arg_trace(tcp);
+		printldinv("return", tcp->u_rval);
+    }
+    return 0;
+}
+
 SYS_FUNC(read)
 {
 	if (entering(tcp)) {

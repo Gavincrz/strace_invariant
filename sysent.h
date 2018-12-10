@@ -6,6 +6,8 @@ typedef struct sysent {
 	int	sys_flags;
 	int	sen;
 	int	(*sys_func)();
+    int invariant;
+    int (*invariant_func)();
 	const char *sys_name;
 } struct_sysent;
 

@@ -65,6 +65,7 @@
 extern char **environ;
 extern int optind;
 extern char *optarg;
+static FILE *invf;
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -152,6 +153,8 @@ static char *acolumn_spaces;
 enum xlat_style xlat_verbosity = XLAT_STYLE_ABBREV;
 
 static const char *outfname;
+static const char *dtracefname;
+
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
 static bool open_append;
@@ -552,6 +555,22 @@ tprintf(const char *fmt, ...)
 # define fputs_unlocked fputs
 #endif
 
+
+
+void
+invprintf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(invf, fmt, args);
+    va_end(args);
+}
+
+void
+invprints(const char *str)
+{
+    fputs_unlocked(str, invf);
+}
 void
 tprints(const char *str)
 {
@@ -1601,7 +1620,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:cCdDe:E:fFhiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:cCdDe:E:fFg:hiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1648,6 +1667,11 @@ init(int argc, char *argv[])
 		case 'F':
 			optF = 1;
 			break;
+			case 'g':
+			    dtracefname = optarg;
+			    break;
+
+
 		case 'h':
 			usage();
 			break;
@@ -1859,6 +1883,15 @@ init(int argc, char *argv[])
 
 	if (!outfname || outfname[0] == '|' || outfname[0] == '!') {
 		setvbuf(shared_log, NULL, _IOLBF, 0);
+	}
+	if (dtracefname){
+        invf = strace_fopen(dtracefname);
+        invprints("input-language C/C++\n");
+		invprints("decl-version 2.0\n");
+		invprints("var-comparability implicit\n\n");
+	}
+	else{
+	    invf = shared_log;
 	}
 
 	/*
@@ -2684,8 +2717,12 @@ terminate(void)
 {
 	cleanup();
 	fflush(NULL);
+    if (invf != shared_log){
+        fclose(invf);
+    }
 	if (shared_log != stderr)
 		fclose(shared_log);
+
 	if (popen_pid) {
 		while (waitpid(popen_pid, NULL, 0) < 0 && errno == EINTR)
 			;

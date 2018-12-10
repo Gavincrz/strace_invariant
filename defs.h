@@ -285,6 +285,7 @@ struct tcb {
 #define QUAL_VERBOSE	0x004	/* decode the structures of this syscall */
 #define QUAL_RAW	0x008	/* print all args in hex for this syscall */
 #define QUAL_INJECT	0x010	/* tamper with this system call on purpose */
+#define QUAL_INVARIANT 0x020 /* print invariant trace */
 
 #define DEFAULT_QUAL_FLAGS (QUAL_TRACE | QUAL_ABBREV | QUAL_VERBOSE)
 
@@ -455,6 +456,8 @@ extern int syscall_exiting_trace(struct tcb *, struct timespec *, int);
 extern void syscall_exiting_finish(struct tcb *);
 
 extern void count_syscall(struct tcb *, const struct timespec *);
+extern int count_inv(struct tcb *);
+extern int get_inv_count(struct tcb *);
 extern void call_summary(FILE *);
 
 extern void clear_regs(struct tcb *tcp);
@@ -680,6 +683,10 @@ printaddr(const kernel_ulong_t addr)
 {
 	printaddr64(addr);
 }
+
+extern void printaddrinv(const char *varname, const kernel_ulong_t addr);
+extern void printldinv(const char *varname, const kernel_ulong_t val);
+extern void printluinv(const char *varname, const kernel_ulong_t val);
 
 #define xlat_verbose(style_) ((style_) & XLAT_STYLE_VERBOSITY_MASK)
 #define xlat_format(style_)  ((style_) & XLAT_STYLE_FORMAT_MASK)
@@ -1151,6 +1158,8 @@ extern void line_ended(void);
 extern void tabto(void);
 extern void tprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 extern void tprints(const char *str);
+extern void invprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
+extern void invprints(const char *str);
 extern void tprintf_comment(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 extern void tprints_comment(const char *str);
 
@@ -1467,7 +1476,14 @@ scno_is_valid(kernel_ulong_t scno)
 #define MPERS_FUNC_NAME(name) MPERS_FUNC_NAME_(MPERS_PREFIX, name)
 
 #define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
+#define INV_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
 
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
+#define INV_FUNC(syscall_name) int INV_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
 
+#define ENTER_PPT ":::ENTER"
+#define EXIT_PPT ":::EXIT0"
+#define NONCE_PPT "this_invocation_nonce"
+#define ENTER_HEADER(syscall_name)  ".." #syscall_name "()" ENTER_PPT "\n" NONCE_PPT "\n"
+#define EXIT_HEADER(syscall_name)  ".." #syscall_name "()" EXIT_PPT "\n" NONCE_PPT "\n"
 #endif /* !STRACE_DEFS_H */
