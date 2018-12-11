@@ -117,22 +117,27 @@ tprint_open_modes(unsigned int flags)
 		      XLAT_STYLE_DEFAULT);
 }
 
+void print_arg_trace_open(struct tcb * tcp)
+{
+    printpathinv("pathname", tcp, tcp->u_arg[0]);
+    printinvvar("flags", PRINT_LD, tcp->u_arg[1]);
+}
 
 INV_FUNC(open)
 {
 	if (tcp->flags & TCB_INV_TRACE){
-//		if (entering(tcp)) {
-//			invprints("\n");
-//			invprints(ENTER_HEADER(read));
-//			invprintf("%d\n", count);
-//			print_arg_trace(tcp);
-//		} else {
-//			invprints("\n");
-//			invprints(EXIT_HEADER(read));
-//			invprintf("%d\n", count);
-//			print_arg_trace(tcp);
-//			printinvvar("return", PRINT_LD, tcp->u_rval);
-//		}
+		if (entering(tcp)) {
+			invprints("\n");
+			invprints(ENTER_HEADER(open));
+			invprintf("%d\n", count);
+            print_arg_trace_open(tcp);
+		} else {
+			invprints("\n");
+			invprints(EXIT_HEADER(open));
+			invprintf("%d\n", count);
+            print_arg_trace_open(tcp);
+			printinvvar("return", PRINT_LD, tcp->u_rval);
+		}
 	}
 	else if(tcp->flags & TCB_INV_TAMPER){
 		kernel_long_t ret = tcp->u_rval;

@@ -65,7 +65,7 @@ INV_FUNC(read)
         tcp->u_rval = ret;
     }
 
-    return 0;
+    return;
 }
 
 SYS_FUNC(read)

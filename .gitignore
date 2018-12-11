@@ -22,7 +22,7 @@
 /config.log
 /config.status
 /config.sub
-/configure
+#/configure
 /depcomp
 /gnu
 /INSTALL
@@ -65,7 +65,7 @@
 /strace-log-merge.1
 /strace.dsc
 /strace.spec
-/sys_func.h
+#/sys_func.h
 /syscallent.i
 /test-driver
 /tests-m32

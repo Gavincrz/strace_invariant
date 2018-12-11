@@ -1,6 +1,6 @@
 [  0] = { 3,	TD,		SEN_TRACE(read), 			 "read"			},
 [  1] = { 3,	TD,		SEN(write),			 "write"			},
-[  2] = { 3,	TD|TF,		SEN(open),			"open"			},
+[  2] = { 3,	TD|TF,		SEN_TRACE(open),			"open"			},
 [  3] = { 1,	TD,		SEN(close),			"close"			},
 [  4] = { 2,	TF|TST|TSTA,	SEN(stat),			"stat"			},
 [  5] = { 2,	TD|TFST|TSTA,	SEN(fstat),			"fstat"			},

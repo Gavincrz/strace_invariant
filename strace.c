@@ -67,7 +67,6 @@ extern int optind;
 extern char *optarg;
 static FILE *invf;
 bool should_tamper = false;
-#define ENABLE_STACKTRACE
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;

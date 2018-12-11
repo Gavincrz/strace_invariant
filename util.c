@@ -716,45 +716,56 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
  * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
  */
 int
+print_quoted_string_ex_invornot(const char *str, unsigned int size,
+const unsigned int style, const char *escape_chars, bool is_invprint){
+    char *buf;
+    char *outstr;
+    unsigned int alloc_size;
+    int rc;
+
+    if (size && style & QUOTE_0_TERMINATED)
+        --size;
+
+    alloc_size = 4 * size;
+    if (alloc_size / 4 != size) {
+        error_func_msg("requested %u bytes exceeds %u bytes limit",
+                       size, -1U / 4);
+        tprints("???");
+        return -1;
+    }
+    alloc_size += 1 + (style & QUOTE_OMIT_LEADING_TRAILING_QUOTES ? 0 : 2) +
+                  (style & QUOTE_EMIT_COMMENT ? 7 : 0);
+
+    if (use_alloca(alloc_size)) {
+        outstr = alloca(alloc_size);
+        buf = NULL;
+    } else {
+        outstr = buf = malloc(alloc_size);
+        if (!buf) {
+            error_func_msg("memory exhausted when tried to allocate"
+                           " %u bytes", alloc_size);
+            tprints("???");
+            return -1;
+        }
+    }
+
+    rc = string_quote(str, outstr, size, style, escape_chars);
+    if (is_invprint){
+        invprints(outstr);
+    }
+    else{
+        tprints(outstr);
+    }
+
+
+    free(buf);
+    return rc;
+}
+int
 print_quoted_string_ex(const char *str, unsigned int size,
 		       const unsigned int style, const char *escape_chars)
 {
-	char *buf;
-	char *outstr;
-	unsigned int alloc_size;
-	int rc;
-
-	if (size && style & QUOTE_0_TERMINATED)
-		--size;
-
-	alloc_size = 4 * size;
-	if (alloc_size / 4 != size) {
-		error_func_msg("requested %u bytes exceeds %u bytes limit",
-			       size, -1U / 4);
-		tprints("???");
-		return -1;
-	}
-	alloc_size += 1 + (style & QUOTE_OMIT_LEADING_TRAILING_QUOTES ? 0 : 2) +
-		(style & QUOTE_EMIT_COMMENT ? 7 : 0);
-
-	if (use_alloca(alloc_size)) {
-		outstr = alloca(alloc_size);
-		buf = NULL;
-	} else {
-		outstr = buf = malloc(alloc_size);
-		if (!buf) {
-			error_func_msg("memory exhausted when tried to allocate"
-				       " %u bytes", alloc_size);
-			tprints("???");
-			return -1;
-		}
-	}
-
-	rc = string_quote(str, outstr, size, style, escape_chars);
-	tprints(outstr);
-
-	free(buf);
-	return rc;
+	return print_quoted_string_ex_invornot(str, size, style, escape_chars, false);
 }
 
 inline int
@@ -813,6 +824,33 @@ printpathn(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int n)
 	}
 
 	return nul_seen;
+}
+
+int printpathinv(const char* varname, struct tcb *const tcp, const kernel_ulong_t addr){
+    unsigned int n = PATH_MAX - 1;
+    char path[PATH_MAX];
+    int nul_seen;
+    invprintf("%s\n",varname);
+    if (!addr) {
+        invprints("nonsensical\n2\n");
+        return -1;
+    }
+
+    /* Cap path length to the path buffer size */
+    if (n > sizeof(path) - 1)
+        n = sizeof(path) - 1;
+
+    /* Fetch one byte more to find out whether path length > n. */
+    nul_seen = umovestr(tcp, addr, n + 1, path);
+    if (nul_seen < 0)
+        invprints("nonsensical\n2\n");
+    else {
+        path[n++] = !nul_seen;
+        print_quoted_string_ex_invornot(path, n, QUOTE_0_TERMINATED, NULL, true);
+        invprints("\n1\n");
+    }
+
+    return nul_seen;
 }
 
 int

@@ -413,7 +413,6 @@ typedef enum{
     PRINT_ADDR,
     PRINT_LD,
     PRINT_LU,
-    PRINT_U
 }invprint_t;
 
 typedef enum {
@@ -913,6 +912,8 @@ printpathn(struct tcb *, kernel_ulong_t addr, unsigned int n);
 extern int
 printpath(struct tcb *, kernel_ulong_t addr);
 
+extern int
+printpathinv(const char* varname, struct tcb *const tcp, const kernel_ulong_t addr);
 #define TIMESPEC_TEXT_BUFSIZE \
 		(sizeof(long long) * 3 * 2 + sizeof("{tv_sec=-, tv_nsec=}"))
 extern void printfd(struct tcb *, int);
@@ -1498,7 +1499,7 @@ scno_is_valid(kernel_ulong_t scno)
 #define INV_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
 
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
-#define INV_FUNC(syscall_name) int INV_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
+#define INV_FUNC(syscall_name) void INV_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
 
 #define ENTER_PPT ":::ENTER"
 #define EXIT_PPT ":::EXIT0"
