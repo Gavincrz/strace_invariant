@@ -682,10 +682,12 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 	printleader(tcp);
 	tprintf("%s(", tcp->s_ent->sys_name);
 	int res = raw(tcp) ? printargs(tcp) : tcp->s_ent->sys_func(tcp);
-	if (tcp->s_ent->invariant){
+
+	if (tcp->flags & TCB_INV_TRACE && tcp->s_ent->invariant){
         int count = get_inv_count(tcp);
 		tcp->s_ent->invariant_func(tcp, count);
 	}
+
 	fflush(tcp->outf);
 	return res;
 }
@@ -930,12 +932,14 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 		unwind_tcb_print(tcp);
 #endif
 
-
-	if (tcp->s_ent->invariant){
-		get_syscall_args(tcp);
-		int count = count_inv(tcp);
-		tcp->s_ent->invariant_func(tcp, count);
-	}
+    if (tcp->s_ent->invariant && (tcp->flags & TCB_INV_TRACE || tcp->flags & TCB_INV_TAMPER)){
+        get_syscall_args(tcp);
+        int count = count_inv(tcp);
+        tcp->s_ent->invariant_func(tcp, count);
+    }
+    if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){
+        arch_set_success(tcp);
+    }
 
 	return 0;
 }
@@ -1232,7 +1236,6 @@ get_scno(struct tcb *tcp)
 		tcp->qual_flg = qual_flags(tcp->scno);
 	} else {
 		struct sysent_buf *s = xcalloc(1, sizeof(*s));
-
 		s->tcp = tcp;
 		s->ent.nargs = MAX_ARGS;
 		s->ent.sen = SEN_printargs;
@@ -1319,7 +1322,6 @@ static void
 set_success(struct tcb *tcp, kernel_long_t new_rval)
 {
 	const kernel_long_t old_rval = tcp->u_rval;
-
 	tcp->u_rval = new_rval;
 	if (arch_set_success(tcp)) {
 		tcp->u_rval = old_rval;

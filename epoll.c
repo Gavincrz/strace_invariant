@@ -86,25 +86,111 @@ SYS_FUNC(epoll_ctl)
 }
 
 void print_arg_trace_epoll_wait(struct tcb *tcp){
-	printldinv("fd", tcp->u_arg[0]);
-	printaddrinv("buf", tcp->u_arg[1]);
-	printluinv("count", tcp->u_arg[2]);
+    printinvvar("epfd", PRINT_LD, tcp->u_arg[0]);
+    printinvvar("events", PRINT_ADDR, tcp->u_arg[1]);
+    int nelem;
+    if (entering(tcp)){
+        nelem = 0;
+    }
+    else{
+        nelem = tcp->u_rval;
+    }
+    // events[...]
+    invprints("events[..]\n");
+    if (nelem == 0){
+        invprints("nonsensical\n2\n");
+    }
+    else{
+        kernel_ulong_t cur_addr = tcp->u_arg[1];
+        invprints("[");
+        for (int i = 0; i < nelem; i++){
+            printaddrinv(cur_addr);
+            cur_addr += sizeof(struct epoll_event);
+            if (i < nelem - 1){
+                invprints(", ");
+            }
+        }
+        invprints("]\n1\n");
+    }
+
+    unsigned int total_size = sizeof(struct epoll_event) * nelem;
+    struct epoll_event *ev_buf = malloc(total_size);
+    tfetch_mem(tcp, tcp->u_arg[1], total_size, ev_buf);
+    // events[...].events
+    invprints("events[..].events\n");
+    if (nelem == 0){
+        invprints("nonsensical\n2\n");
+    }
+    else{
+        invprints("[");
+        for (int i = 0; i < nelem; i++){
+            printluinv(ev_buf[i].events);
+            if (i < nelem - 1){
+                invprints(", ");
+            }
+        }
+        invprints("]\n1\n");
+    }
+
+    // events[...].data
+    invprints("events[..].data.u64\n");
+    if (nelem == 0){
+        invprints("nonsensical\n2\n");
+    }
+    else{
+        invprints("[");
+        for (int i = 0; i < nelem; i++){
+            printldinv(ev_buf[i].data.u64);
+            if (i < nelem - 1){
+                invprints(", ");
+            }
+        }
+        invprints("]\n1\n");
+    }
+    free(ev_buf);
+    //maxevents
+    printinvvar("maxevents", PRINT_LD, tcp->u_arg[2]);
+    //timeout
+    printinvvar("timeout", PRINT_LD, tcp->u_arg[3]);
+
 }
 
 INV_FUNC(epoll_wait)
 {
-	if (entering(tcp)) {
-		invprints("\n");
-		invprints(ENTER_HEADER(read));
-		invprintf("%d\n", count);
-		print_arg_trace_epoll_wait(tcp);
-	} else {
-		invprints("\n");
-		invprints(EXIT_HEADER(read));
-		invprintf("%d\n", count);
-		print_arg_trace_epoll_wait(tcp);
-		printldinv("return", tcp->u_rval);
-	}
+    if (tcp->flags & TCB_INV_TRACE){
+        if (entering(tcp)) {
+            invprints("\n");
+            invprints(ENTER_HEADER(epoll_wait));
+            invprintf("%d\n", count);
+            print_arg_trace_epoll_wait(tcp);
+        } else {
+            invprints("\n");
+            invprints(EXIT_HEADER(epoll_wait));
+            invprintf("%d\n", count);
+            print_arg_trace_epoll_wait(tcp);
+            printinvvar("return", PRINT_LD, tcp->u_rval);
+        }
+    }
+    else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+        /* read data from tracee */
+        kernel_long_t maxevents = tcp->u_arg[2];
+        kernel_long_t ret = tcp->u_rval;
+        int len = sizeof(struct epoll_event) * maxevents;
+        struct epoll_event *events = malloc(len);
+        tfetch_mem(tcp, tcp->u_arg[1], len, events);
+        /* tamper code epoll_wait */
+        /*
+        events[0].data.fd = 8080;
+        ret = 1;
+         */
+        /* end of temper code epoll_wait */
+
+        /* write back data to tracee and clean up */
+        vm_write_mem(tcp->pid, events, tcp->u_arg[1], len);
+        tcp->u_rval = ret;
+        free(events);
+    }
+
 	return 0;
 }
 

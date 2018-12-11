@@ -279,13 +279,15 @@ struct tcb {
 #define TCB_TAMPERED_NO_FAIL 0x4000	/* We tamper tcb with syscall
 					   that should not fail. */
 
+#define TCB_INV_TRACE 0X8000 /* Indicate wether we should output dtrace */
+#define TCB_INV_TAMPER 0x10000 /* Indicate wether we should tamper some return fields */
+
 /* qualifier flags */
 #define QUAL_TRACE	0x001	/* this system call should be traced */
 #define QUAL_ABBREV	0x002	/* abbreviate the structures of this syscall */
 #define QUAL_VERBOSE	0x004	/* decode the structures of this syscall */
 #define QUAL_RAW	0x008	/* print all args in hex for this syscall */
 #define QUAL_INJECT	0x010	/* tamper with this system call on purpose */
-#define QUAL_INVARIANT 0x020 /* print invariant trace */
 
 #define DEFAULT_QUAL_FLAGS (QUAL_TRACE | QUAL_ABBREV | QUAL_VERBOSE)
 
@@ -407,6 +409,13 @@ enum iov_decode {
 	IOV_DECODE_NETLINK
 };
 
+typedef enum{
+    PRINT_ADDR,
+    PRINT_LD,
+    PRINT_LU,
+    PRINT_U
+}invprint_t;
+
 typedef enum {
 	CFLAG_NONE = 0,
 	CFLAG_ONLY_STATS,
@@ -431,12 +440,15 @@ extern unsigned followfork;
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 extern bool stack_trace_enabled;
+extern bool should_tamper;
 #endif
 extern unsigned ptrace_setoptions;
 extern unsigned max_strlen;
 extern unsigned os_release;
 #undef KERNEL_VERSION
 #define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
+
+
 
 extern int read_int_from_file(struct tcb *, const char *, int *);
 
@@ -520,6 +532,9 @@ umoven(struct tcb *, kernel_ulong_t addr, unsigned int len, void *laddr);
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof(*(objp)), (void *) (objp))
 
+extern ssize_t vm_write_mem(const pid_t pid, void *const laddr,
+             const kernel_ulong_t raddr, const size_t len);
+
 /**
  * @return true on success, false on error.
  */
@@ -595,6 +610,7 @@ umovestr(struct tcb *, kernel_ulong_t addr, unsigned int len, char *laddr);
 
 extern int upeek(struct tcb *tcp, unsigned long, kernel_ulong_t *);
 extern int upoke(struct tcb *tcp, unsigned long, kernel_ulong_t);
+
 
 #if HAVE_ARCH_GETRVAL2
 extern long getrval2(struct tcb *);
@@ -684,9 +700,10 @@ printaddr(const kernel_ulong_t addr)
 	printaddr64(addr);
 }
 
-extern void printaddrinv(const char *varname, const kernel_ulong_t addr);
-extern void printldinv(const char *varname, const kernel_ulong_t val);
-extern void printluinv(const char *varname, const kernel_ulong_t val);
+extern void printinvvar(const char *varname, invprint_t type, const kernel_ulong_t addr);
+extern void printaddrinv(const kernel_ulong_t val);
+extern void printldinv(const kernel_ulong_t val);
+extern void printluinv(const kernel_ulong_t val);
 
 #define xlat_verbose(style_) ((style_) & XLAT_STYLE_VERBOSITY_MASK)
 #define xlat_format(style_)  ((style_) & XLAT_STYLE_FORMAT_MASK)
@@ -835,6 +852,8 @@ typedef bool (*tfetch_mem_fn)(struct tcb *, kernel_ulong_t addr,
 typedef bool (*print_fn)(struct tcb *, void *elem_buf,
 			 size_t elem_size, void *opaque_data);
 
+typedef bool (*print_inv_fn)(struct tcb *, void *elem_buf,
+                         size_t elem_size, void *opaque_data);
 
 /**
  * @param flags Combination of xlat style settings and additional flags from

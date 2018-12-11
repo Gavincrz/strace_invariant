@@ -33,26 +33,38 @@
 #include <fcntl.h>
 #include <sys/uio.h>
 
+
+
 void print_arg_trace(struct tcb *tcp){
-	printldinv("fd", tcp->u_arg[0]);
-    printaddrinv("buf", tcp->u_arg[1]);
-    printluinv("count", tcp->u_arg[2]);
+    printinvvar("fd", PRINT_LD, tcp->u_arg[0]);
+    printinvvar("buf", PRINT_ADDR, tcp->u_arg[1]);
+    printinvvar("count", PRINT_LU, tcp->u_arg[2]);
 }
 
 INV_FUNC(read)
 {
-    if (entering(tcp)) {
-		invprints("\n");
-        invprints(ENTER_HEADER(read));
-        invprintf("%d\n", count);
-        print_arg_trace(tcp);
-    } else {
-        invprints("\n");
-        invprints(EXIT_HEADER(read));
-        invprintf("%d\n", count);
-        print_arg_trace(tcp);
-		printldinv("return", tcp->u_rval);
+    if (tcp->flags & TCB_INV_TRACE){
+        if (entering(tcp)) {
+            invprints("\n");
+            invprints(ENTER_HEADER(read));
+            invprintf("%d\n", count);
+            print_arg_trace(tcp);
+        } else {
+            invprints("\n");
+            invprints(EXIT_HEADER(read));
+            invprintf("%d\n", count);
+            print_arg_trace(tcp);
+            printinvvar("return", PRINT_LD, tcp->u_rval);
+        }
     }
+    else if(tcp->flags & TCB_INV_TAMPER){
+        kernel_long_t ret = tcp->u_rval;
+        /*tamper code read*/
+        ret = 375542811;
+        /*end of temper code read*/
+        tcp->u_rval = ret;
+    }
+
     return 0;
 }
 

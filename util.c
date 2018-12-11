@@ -238,26 +238,45 @@ printaddr64(const uint64_t addr)
 }
 
 void
-printaddrinv(const char *varname, const kernel_ulong_t addr)
+printaddrinv(const kernel_ulong_t val)
 {
-	invprintf("%s\n", varname);
-	invprintf("%#" PRIx64, addr);
-	invprints("\n1\n");
+	invprintf("%#" PRIx64, val);
 }
 void
-printldinv(const char *varname, const kernel_ulong_t val)
+printldinv(const kernel_ulong_t val)
 {
-    invprintf("%s\n", varname);
     invprintf("%"PRI_kld ,val);
-    invprints("\n1\n");
 }
 void
-printluinv(const char *varname, const kernel_ulong_t val)
+printluinv(const kernel_ulong_t val)
 {
-    invprintf("%s\n", varname);
     invprintf("%"PRI_klu , val);
+}
+
+typedef void (*print_func_t)(const kernel_ulong_t);
+
+print_func_t
+select_print_func(invprint_t type)
+{
+    switch(type){
+        case PRINT_ADDR:
+            return printaddrinv;
+        case PRINT_LD:
+            return printldinv;
+        case PRINT_LU:
+            return printluinv;
+        default:
+            return NULL;
+    }
+}
+
+void
+printinvvar(const char *varname, invprint_t type, const kernel_ulong_t val){
+    invprintf("%s\n", varname);
+    select_print_func(type)(val);
     invprints("\n1\n");
 }
+
 
 #define DEF_PRINTNUM(name, type) \
 bool									\
@@ -1108,6 +1127,17 @@ print_uint64_array_member(struct tcb *tcp, void *elem_buf, size_t elem_size,
  * This function returns true only if tfetch_mem_func has returned true
  * at least once.
  */
+
+void
+fetch_array(struct tcb *const tcp,
+                const kernel_ulong_t start_addr,
+                const size_t nmemb,
+                void * buf,
+                const size_t elem_size)
+{
+
+}
+
 bool
 print_array_ex(struct tcb *const tcp,
 	       const kernel_ulong_t start_addr,

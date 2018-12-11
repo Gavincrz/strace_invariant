@@ -58,7 +58,20 @@ static ssize_t strace_process_vm_readv(pid_t pid,
 	return syscall(__NR_process_vm_readv,
 		       (long) pid, lvec, liovcnt, rvec, riovcnt, flags);
 }
+
+static ssize_t strace_process_vm_writev(pid_t pid,
+                                       const struct iovec *lvec,
+                                       unsigned long liovcnt,
+                                       const struct iovec *rvec,
+                                       unsigned long riovcnt,
+                                       unsigned long flags)
+{
+    return syscall(__NR_process_vm_writev,
+                   (long) pid, lvec, liovcnt, rvec, riovcnt, flags);
+}
+
 # define process_vm_readv strace_process_vm_readv
+# define process_vm_writev strace_process_vm_writev
 #endif /* !HAVE_PROCESS_VM_READV */
 
 static ssize_t
@@ -88,6 +101,35 @@ vm_read_mem(const pid_t pid, void *const laddr,
 		process_vm_readv_not_supported = true;
 
 	return rc;
+}
+
+ssize_t
+vm_write_mem(const pid_t pid, void *const laddr,
+            const kernel_ulong_t raddr, const size_t len)
+{
+    const unsigned long truncated_raddr = raddr;
+
+#if SIZEOF_LONG < SIZEOF_KERNEL_LONG_T
+    if (raddr != (kernel_ulong_t) truncated_raddr) {
+		errno = EIO;
+		return -1;
+	}
+#endif
+
+    const struct iovec local = {
+            .iov_base = laddr,
+            .iov_len = len
+    };
+    const struct iovec remote = {
+            .iov_base = (void *) truncated_raddr,
+            .iov_len = len
+    };
+
+    const ssize_t rc = process_vm_writev(pid, &local, 1, &remote, 1, 0);
+    if (rc < 0 && errno == ENOSYS)
+        process_vm_readv_not_supported = true;
+
+    return rc;
 }
 
 static bool

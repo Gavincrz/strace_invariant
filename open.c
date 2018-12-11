@@ -117,6 +117,32 @@ tprint_open_modes(unsigned int flags)
 		      XLAT_STYLE_DEFAULT);
 }
 
+
+INV_FUNC(open)
+{
+	if (tcp->flags & TCB_INV_TRACE){
+//		if (entering(tcp)) {
+//			invprints("\n");
+//			invprints(ENTER_HEADER(read));
+//			invprintf("%d\n", count);
+//			print_arg_trace(tcp);
+//		} else {
+//			invprints("\n");
+//			invprints(EXIT_HEADER(read));
+//			invprintf("%d\n", count);
+//			print_arg_trace(tcp);
+//			printinvvar("return", PRINT_LD, tcp->u_rval);
+//		}
+	}
+	else if(tcp->flags & TCB_INV_TAMPER){
+		kernel_long_t ret = tcp->u_rval;
+		/*tamper code open*/
+		//ret = 3232;
+		/*end of temper code open*/
+		tcp->u_rval = ret;
+	}
+}
+
 static int
 decode_open(struct tcb *tcp, int offset)
 {

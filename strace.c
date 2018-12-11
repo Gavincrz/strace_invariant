@@ -66,7 +66,8 @@ extern char **environ;
 extern int optind;
 extern char *optarg;
 static FILE *invf;
-
+bool should_tamper = false;
+#define ENABLE_STACKTRACE
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;
@@ -737,7 +738,7 @@ after_successful_attach(struct tcb *tcp, const unsigned int flags)
 	}
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
+	if (stack_trace_enabled || should_tamper)
 		unwind_tcb_init(tcp);
 #endif
 }
@@ -834,7 +835,7 @@ droptcb(struct tcb *tcp)
 	free_tcb_priv_data(tcp);
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
+	if (stack_trace_enabled || should_tamper)
 		unwind_tcb_fin(tcp);
 #endif
 
@@ -1620,7 +1621,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:cCdDe:E:fFg:hiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:cCdDe:E:fFg:GhiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1667,11 +1668,12 @@ init(int argc, char *argv[])
 		case 'F':
 			optF = 1;
 			break;
-			case 'g':
-			    dtracefname = optarg;
-			    break;
-
-
+		case 'g':
+			dtracefname = optarg;
+			break;
+		case 'G':
+		    should_tamper = true;
+		    break;
 		case 'h':
 			usage();
 			break;
@@ -2191,13 +2193,16 @@ print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 			tprintf("--- %s ", signame(sig));
 			printsiginfo(si);
 			tprints(" ---\n");
+			unwind_tcb_print(tcp);
 		} else
 			tprintf("--- stopped by %s ---\n", signame(sig));
 		line_ended();
 
 #ifdef ENABLE_STACKTRACE
-		if (stack_trace_enabled)
-			unwind_tcb_print(tcp);
+		if (stack_trace_enabled || should_tamper){
+			//unwind_tcb_print(tcp);
+		}
+
 #endif
 	}
 }
@@ -2222,6 +2227,14 @@ startup_tcb(struct tcb *tcp)
 
 	if ((tcp->flags & TCB_GRABBED) && (get_scno(tcp) == 1))
 		tcp->s_prev_ent = tcp->s_ent;
+
+	/* should output dtrace info or tamper the result */
+	if (dtracefname != NULL){
+		tcp->flags |= TCB_INV_TRACE;
+	}
+	else if(should_tamper){
+		tcp->flags |= TCB_INV_TAMPER;
+	}
 }
 
 static void
@@ -2375,10 +2388,12 @@ next_event(void)
 
 	clear_regs(tcp);
 
+
 	/* Set current output file */
 	set_current_tcp(tcp);
 
-	if (cflag) {
+
+    if (cflag) {
 		struct timespec stime = {
 			.tv_sec = ru.ru_stime.tv_sec,
 			.tv_nsec = ru.ru_stime.tv_usec * 1000
