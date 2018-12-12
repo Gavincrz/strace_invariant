@@ -836,6 +836,51 @@ print_getsockopt(struct tcb *const tcp, const unsigned int level,
 	}
 }
 
+void print_arg_trace_getsockopt(struct tcb *tcp)
+{
+	printinvvar("sockfd", PRINT_LD, tcp->u_arg[0]);
+	printinvvar("level", PRINT_LU, tcp->u_arg[1]);
+	printinvvar("optname", PRINT_LU, tcp->u_arg[2]);
+	printinvvar("optval", PRINT_ADDR, tcp->u_arg[3]);
+	//optlen
+	int optlen;
+    if (umove(tcp, tcp->u_arg[4], &optlen) < 0){
+        invprints("optlen\nnonsensical\n2\n");
+    }
+    else{
+        printinvvar("optlen", PRINT_LU, optlen);
+    };
+}
+
+
+INV_FUNC(getsockopt)
+{
+	if (tcp->flags & TCB_INV_TRACE){
+		if (entering(tcp)) {
+			invprints("\n");
+			invprints(ENTER_HEADER(getsockopt));
+			invprintf("%d\n", count);
+            print_arg_trace_getsockopt(tcp);
+		} else {
+			invprints("\n");
+			invprints(EXIT_HEADER(getsockopt));
+			invprintf("%d\n", count);
+            print_arg_trace_getsockopt(tcp);
+			printinvvar("return", PRINT_LD, tcp->u_rval);
+		}
+	}
+	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		/* read data from tracee */
+
+		/* tamper code getsockopt */
+
+		/* end of temper code getsockopt */
+
+		/* write back data to tracee and clean up */
+
+	}
+}
+
 SYS_FUNC(getsockopt)
 {
 	int ulen, rlen;

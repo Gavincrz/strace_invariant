@@ -35,7 +35,7 @@
 
 
 
-void print_arg_trace(struct tcb *tcp){
+void print_arg_trace_read_write(struct tcb *tcp){
     printinvvar("fd", PRINT_LD, tcp->u_arg[0]);
     printinvvar("buf", PRINT_ADDR, tcp->u_arg[1]);
     printinvvar("count", PRINT_LU, tcp->u_arg[2]);
@@ -48,24 +48,23 @@ INV_FUNC(read)
             invprints("\n");
             invprints(ENTER_HEADER(read));
             invprintf("%d\n", count);
-            print_arg_trace(tcp);
+            print_arg_trace_read_write(tcp);
         } else {
             invprints("\n");
             invprints(EXIT_HEADER(read));
             invprintf("%d\n", count);
-            print_arg_trace(tcp);
+            print_arg_trace_read_write(tcp);
             printinvvar("return", PRINT_LD, tcp->u_rval);
         }
     }
     else if(tcp->flags & TCB_INV_TAMPER){
         kernel_long_t ret = tcp->u_rval;
         /*tamper code read*/
-        ret = 375542811;
+
         /*end of temper code read*/
         tcp->u_rval = ret;
     }
 
-    return;
 }
 
 SYS_FUNC(read)
@@ -81,6 +80,31 @@ SYS_FUNC(read)
 		tprintf(", %" PRI_klu, tcp->u_arg[2]);
 	}
 	return 0;
+}
+
+INV_FUNC(write)
+{
+    if (tcp->flags & TCB_INV_TRACE){
+        if (entering(tcp)) {
+            invprints("\n");
+            invprints(ENTER_HEADER(write));
+            invprintf("%d\n", count);
+            print_arg_trace_read_write(tcp);
+        } else {
+            invprints("\n");
+            invprints(EXIT_HEADER(write));
+            invprintf("%d\n", count);
+            print_arg_trace_read_write(tcp);
+            printinvvar("return", PRINT_LD, tcp->u_rval);
+        }
+    }
+    else if(tcp->flags & TCB_INV_TAMPER){
+        kernel_long_t ret = tcp->u_rval;
+        /*tamper code read*/
+
+        /*end of temper code read*/
+        tcp->u_rval = ret;
+    }
 }
 
 SYS_FUNC(write)

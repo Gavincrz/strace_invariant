@@ -191,7 +191,7 @@ INV_FUNC(epoll_wait)
         free(events);
     }
 
-	return 0;
+	return;
 }
 
 static void

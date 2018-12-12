@@ -270,6 +270,7 @@ select_print_func(invprint_t type)
     }
 }
 
+
 void
 printinvvar(const char *varname, invprint_t type, const kernel_ulong_t val){
     invprintf("%s\n", varname);

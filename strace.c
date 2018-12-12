@@ -2161,6 +2161,11 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 		tprintf("+++ killed by %s +++\n",
 			signame(WTERMSIG(status)));
 #endif
+#ifdef ENABLE_STACKTRACE
+		if (stack_trace_enabled || should_tamper){
+                unwind_tcb_print(tcp);
+            }
+#endif
 		line_ended();
 	}
 }
@@ -2192,14 +2197,13 @@ print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 			tprintf("--- %s ", signame(sig));
 			printsiginfo(si);
 			tprints(" ---\n");
-			unwind_tcb_print(tcp);
 		} else
 			tprintf("--- stopped by %s ---\n", signame(sig));
 		line_ended();
 
 #ifdef ENABLE_STACKTRACE
 		if (stack_trace_enabled || should_tamper){
-			//unwind_tcb_print(tcp);
+			unwind_tcb_print(tcp);
 		}
 
 #endif

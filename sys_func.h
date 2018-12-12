@@ -1,6 +1,8 @@
 extern INV_FUNC(epoll_wait);
+extern INV_FUNC(getsockopt);
 extern INV_FUNC(open);
 extern INV_FUNC(read);
+extern INV_FUNC(write);
 extern SYS_FUNC(accept);
 extern SYS_FUNC(accept4);
 extern SYS_FUNC(access);
