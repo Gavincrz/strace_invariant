@@ -349,11 +349,11 @@ void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret){
                     continue;
                 }
             }
-            (void)read(random_fd, mlist[i].addr, mlist[i].size);
+            if (read(random_fd, mlist[i].addr, mlist[i].size) < 0) return;
             if (mlist[i].type == VARIABLE_FD){
                 // make sure the random fd is unique;
                 while(get_fd_entry(*((int *)(mlist[i].addr))) != NULL){
-                    (void)read(random_fd, mlist[i].addr, mlist[i].size);
+                    if(read(random_fd, mlist[i].addr, mlist[i].size) < 0) return;
                 }
                 // insert into fd list
                 insert_fd_entry(oldfd, *((int *)(mlist[i].addr)));

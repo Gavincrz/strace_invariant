@@ -166,7 +166,7 @@ enum handler_t {
 };
 typedef enum handler_t handler_t;
 
-typedef handler_t (*fdevent_handler)(struct server *srv, void *ctx, int revents);
+typedef handler_t (*fdevent_handler)();
 typedef struct _fdnode {
     fdevent_handler handler;
     void *ctx;
@@ -209,22 +209,22 @@ INV_FUNC(epoll_wait)
             tfetch_mem(tcp, tcp->u_arg[1], len, events);
             /* tamper code epoll_wait */
 
-//            m_set mlist[NUM_RET_EPOLL_WAIT] = {{events, len, VARIABLE_NORMAL},\
-//                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
-//            fuzzing_return_value(ibuf, mlist, num_ret);
-//            tprintf("\nmodified return: %ld \n", ret);
+            m_set mlist[NUM_RET_EPOLL_WAIT] = {{events, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+            tprintf("\nmodified return: %ld \n", ret);
 
-		    ret = 1;
-		    events->data.fd = 4100;
-
-		    fdnode node;
-		    node.fd = 4100;
-		    node.handler = 0x4092ac;
-
-		    struct epoll_event *child_event_addr =  (struct epoll_event *)tcp->u_arg[1];
-
-		    memcpy(&(events[2]), &node, sizeof(node));
-		    events[1].data.ptr = &(child_event_addr[2]);
+//		    ret = 1;
+//		    events->data.fd = 4100;
+//
+//		    fdnode node;
+//		    node.fd = 4100;
+//		    node.handler = 0x4092ac;
+//
+//		    struct epoll_event *child_event_addr =  (struct epoll_event *)tcp->u_arg[1];
+//
+//		    memcpy(&(events[2]), &node, sizeof(node));
+//		    events[1].data.ptr = &(child_event_addr[2]);
 
 
             /* end of temper code epoll_wait */
