@@ -415,11 +415,31 @@ typedef enum{
     PRINT_LU,
 }invprint_t;
 
+typedef enum{
+    VARIABLE_NORMAL,
+    VARIABLE_FD,
+}mvar_t;
+
+typedef struct {
+    void* addr;
+    size_t size;
+    mvar_t type;
+} m_set;
+
 typedef enum {
 	CFLAG_NONE = 0,
 	CFLAG_ONLY_STATS,
 	CFLAG_BOTH
 } cflag_t;
+
+typedef struct fd_replace_entry{
+    int orifd;
+    int newfd;
+    struct fd_replace_entry *next;
+} fd_replace_entry;
+
+extern fd_replace_entry *fd_replace_list;
+
 extern cflag_t cflag;
 extern bool Tflag;
 extern bool iflag;
@@ -447,10 +467,16 @@ extern unsigned os_release;
 #undef KERNEL_VERSION
 #define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 
-
-
+#define INPUT_DIRECTORY "/home/gavin/strace/return/"
+#define FUZZ_FILE(scname)  INPUT_DIRECTORY #scname ".input"
+extern void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret);
+extern int read_fuzz_file(const char* filename, int **ibuf, int num_var);
 extern int read_int_from_file(struct tcb *, const char *, int *);
-
+extern void remove_fd_entry(int fd);
+extern fd_replace_entry* get_fd_entry(int newfd);
+extern void using_ori_fd(struct tcb *tcp);
+extern void using_ori_fd_2(struct tcb *tcp);
+extern void using_ori_fd_idx(struct tcb *tcp, int idx);
 extern void set_sortby(const char *);
 extern void set_overhead(int);
 

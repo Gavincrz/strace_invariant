@@ -155,8 +155,32 @@ void print_arg_trace_epoll_wait(struct tcb *tcp){
 
 }
 
+enum handler_t {
+    HANDLER_UNSET,
+    HANDLER_GO_ON,
+    HANDLER_FINISHED,
+    HANDLER_COMEBACK,
+    HANDLER_WAIT_FOR_EVENT,
+    HANDLER_ERROR,
+    HANDLER_WAIT_FOR_FD
+};
+typedef enum handler_t handler_t;
+
+typedef handler_t (*fdevent_handler)(struct server *srv, void *ctx, int revents);
+typedef struct _fdnode {
+    fdevent_handler handler;
+    void *ctx;
+    void *handler_ctx;
+    int fd;
+    int events;
+} fdnode;
+
+#define NUM_RET_EPOLL_WAIT 2
 INV_FUNC(epoll_wait)
 {
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_EPOLL_WAIT;
     if (tcp->flags & TCB_INV_TRACE){
         if (entering(tcp)) {
             invprints("\n");
@@ -172,23 +196,45 @@ INV_FUNC(epoll_wait)
         }
     }
     else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
-        /* read data from tracee */
-        kernel_long_t maxevents = tcp->u_arg[2];
-        kernel_long_t ret = tcp->u_rval;
-        int len = sizeof(struct epoll_event) * maxevents;
-        struct epoll_event *events = malloc(len);
-        tfetch_mem(tcp, tcp->u_arg[1], len, events);
-        /* tamper code epoll_wait */
-        /*
-        events[0].data.fd = 8080;
-        ret = 1;
-         */
-        /* end of temper code epoll_wait */
 
-        /* write back data to tracee and clean up */
-        vm_write_mem(tcp->pid, events, tcp->u_arg[1], len);
-        tcp->u_rval = ret;
-        free(events);
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(epoll_wait), &ibuf, num_ret);
+        }
+        if (count >= vcount){
+            /* read data from tracee */
+            kernel_long_t maxevents = tcp->u_arg[2];
+            kernel_long_t ret = tcp->u_rval;
+            unsigned int len = sizeof(struct epoll_event) * maxevents;
+            struct epoll_event *events = malloc(len);
+            tfetch_mem(tcp, tcp->u_arg[1], len, events);
+            /* tamper code epoll_wait */
+
+//            m_set mlist[NUM_RET_EPOLL_WAIT] = {{events, len, VARIABLE_NORMAL},\
+//                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+//            fuzzing_return_value(ibuf, mlist, num_ret);
+//            tprintf("\nmodified return: %ld \n", ret);
+
+		    ret = 1;
+		    events->data.fd = 4100;
+
+		    fdnode node;
+		    node.fd = 4100;
+		    node.handler = 0x4092ac;
+
+		    struct epoll_event *child_event_addr =  (struct epoll_event *)tcp->u_arg[1];
+
+		    memcpy(&(events[2]), &node, sizeof(node));
+		    events[1].data.ptr = &(child_event_addr[2]);
+
+
+            /* end of temper code epoll_wait */
+            /* write back data to tracee and clean up */
+            vm_write_mem(tcp->pid, events, tcp->u_arg[1], len);
+            tcp->u_rval = ret;
+            free(events);
+        }
+
+
     }
 
 	return;

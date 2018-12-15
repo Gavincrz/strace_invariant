@@ -145,6 +145,8 @@ static const char *username;
 static uid_t run_uid;
 static gid_t run_gid;
 
+fd_replace_entry *fd_replace_list = NULL;
+
 unsigned int max_strlen = DEFAULT_STRLEN;
 static int acolumn = DEFAULT_ACOLUMN;
 static char *acolumn_spaces;
@@ -2290,6 +2292,7 @@ next_event(void)
 	struct tcb_wait_data *wd = &wait_data;
 	struct rusage ru;
 
+
 	if (interrupted)
 		return NULL;
 
@@ -2778,6 +2781,7 @@ int
 main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "");
+
 	init(argc, argv);
 
 	exit_code = !nprocs;

@@ -42,6 +42,7 @@
 # include <sys/xattr.h>
 #endif
 #include <sys/uio.h>
+#include <assert.h>
 
 #include "largefile_wrappers.h"
 #include "xlat.h"
@@ -270,6 +271,141 @@ select_print_func(invprint_t type)
     }
 }
 
+void insert_fd_entry(int oldfd, int newfd){
+    fd_replace_entry* head = fd_replace_list;
+    fd_replace_entry* new_entry = (fd_replace_entry*)malloc(sizeof(fd_replace_entry));
+    fd_replace_list = new_entry;
+    new_entry->newfd = newfd;
+    new_entry->orifd = oldfd;
+    new_entry->next = head;
+    tprintf("inserted fd %d, orifd:%d\n", newfd, oldfd);
+}
+
+fd_replace_entry* get_fd_entry(int newfd){
+    fd_replace_entry* iter = fd_replace_list;
+    while(iter != NULL){
+        if (iter->newfd == newfd){
+            break;
+        }
+        iter = iter->next;
+    }
+    return iter;
+}
+
+void remove_fd_entry(int fd){
+    if (fd_replace_list == NULL){
+        printf("how could you close without open anything ?");
+        return;
+    }
+    if (fd_replace_list->newfd == fd){
+        free(fd_replace_list);
+        fd_replace_list = NULL;
+        return;
+    }
+    fd_replace_entry* previous = fd_replace_list;
+    fd_replace_entry* iter = fd_replace_list->next;
+    while (iter != NULL){
+        if (iter->newfd == fd){
+            previous->next = iter->next;
+            free(iter);
+            return;
+        }
+        previous = iter;
+        iter = iter->next;
+    }
+    printf("removed fd not found %d\n", fd);
+}
+
+void using_ori_fd_idx(struct tcb *tcp, int idx){
+    if (tcp->flags & TCB_INV_TAMPER){
+        fd_replace_entry *entry = get_fd_entry((int)tcp->u_arg[idx]);
+        if (entry != NULL){
+            tprintf("fd modified from %ld to %d", tcp->u_arg[idx], entry->orifd);
+            tcp->u_arg[idx] = (kernel_ulong_t)entry->orifd;
+        }
+    }
+}
+void using_ori_fd(struct tcb *tcp){
+    using_ori_fd_idx(tcp, 0);
+}
+void using_ori_fd_2(struct tcb *tcp){
+    using_ori_fd_idx(tcp, 0);
+    using_ori_fd_idx(tcp, 1);
+}
+
+void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret){
+    static int random_fd = -1;
+    if (random_fd == -1) {
+        random_fd = open("/dev/urandom", O_RDONLY);
+    }
+    int oldfd = 0;
+    for (int i = 0; i < num_ret; i++){
+        if (ibuf[i] == 1){
+
+            if (mlist[i].type == VARIABLE_FD){
+                oldfd = *((int *)(mlist[i].addr));
+                // do not modify returned fd if open failed;
+                if (oldfd == -1){
+                    continue;
+                }
+            }
+            (void)read(random_fd, mlist[i].addr, mlist[i].size);
+            if (mlist[i].type == VARIABLE_FD){
+                // make sure the random fd is unique;
+                while(get_fd_entry(*((int *)(mlist[i].addr))) != NULL){
+                    (void)read(random_fd, mlist[i].addr, mlist[i].size);
+                }
+                // insert into fd list
+                insert_fd_entry(oldfd, *((int *)(mlist[i].addr)));
+            }
+        }
+    }
+}
+
+int read_fuzz_file(const char* filename, int **ibuf, int num_var){
+    FILE* fp = fopen(filename, "r");
+    int count = -1;
+    if (fp){
+        char *line;
+        ssize_t nread;
+        size_t len = 0;
+        //read the first line of file, two integers (count, num_var)
+        nread = getline(&line, &len, fp);
+        if (nread != -1){
+            const char *delim = " ";
+            char *ptr = strtok(line, delim);
+            if (ptr != NULL){
+                count = atoi(ptr);
+                *ibuf = (int *)malloc(sizeof(int) * (num_var));
+
+                // read the second line: value
+                nread = getline(&line, &len, fp);
+                assert(nread != -1);
+                ptr = strtok(line, delim);
+
+                (*ibuf)[0] = atoi(ptr);
+                for (int i = 1; i < num_var; i++){
+                    ptr = strtok(NULL, delim);
+                    (*ibuf)[i] = atoi(ptr);
+                }
+
+            }
+            else {
+                printf("Error: fail to parse the first number \n");
+            }
+        }
+        else{
+            printf("Error: fail to read the first line \n");
+        }
+
+        free(line);
+        fclose(fp);
+    }
+    else{
+        printf("Error: fail to open return input file \n");
+    }
+    return count;
+}
 
 void
 printinvvar(const char *varname, invprint_t type, const kernel_ulong_t val){

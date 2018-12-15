@@ -487,7 +487,7 @@ static int arch_get_syscall_args(struct tcb *);
 static void arch_get_error(struct tcb *, bool);
 static int arch_set_error(struct tcb *);
 static int arch_set_success(struct tcb *);
-
+static int arch_set_all_reg(struct tcb *tcp);
 struct inject_opts *inject_vec[SUPPORTED_PERSONALITIES];
 
 static struct inject_opts *
@@ -686,6 +686,10 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 	if (tcp->flags & TCB_INV_TRACE && tcp->s_ent->invariant){
         int count = get_inv_count(tcp);
 		tcp->s_ent->invariant_func(tcp, count);
+
+	}
+	if (tcp->flags & TCB_INV_TAMPER){
+        arch_set_all_reg(tcp);
 	}
 
 	fflush(tcp->outf);

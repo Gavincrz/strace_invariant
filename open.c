@@ -123,8 +123,12 @@ void print_arg_trace_open(struct tcb * tcp)
     printinvvar("flags", PRINT_LD, tcp->u_arg[1]);
 }
 
+#define NUM_RET_OPEN 1
 INV_FUNC(open)
 {
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_OPEN;
 	if (tcp->flags & TCB_INV_TRACE){
 		if (entering(tcp)) {
 			invprints("\n");
@@ -140,11 +144,15 @@ INV_FUNC(open)
 		}
 	}
 	else if(tcp->flags & TCB_INV_TAMPER){
-		kernel_long_t ret = tcp->u_rval;
-		/*tamper code open*/
-		//ret = 3232;
-		/*end of temper code open*/
-		tcp->u_rval = ret;
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(open), &ibuf, num_ret);
+        }
+        if (count >= vcount){
+            kernel_long_t ret = tcp->u_rval;
+            m_set mlist[NUM_RET_OPEN] = {{&ret, sizeof(int), VARIABLE_FD}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+            tcp->u_rval = ret;
+        }
 	}
 }
 

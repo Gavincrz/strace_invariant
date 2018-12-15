@@ -35,14 +35,17 @@
 SYS_FUNC(close)
 {
 	printfd(tcp, tcp->u_arg[0]);
-
+    using_ori_fd(tcp);
+    if (tcp->flags & TCB_INV_TAMPER){
+        remove_fd_entry(tcp->u_arg[0]);
+    }
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(dup)
 {
 	printfd(tcp, tcp->u_arg[0]);
-
+    using_ori_fd(tcp);
 	return RVAL_DECODED | RVAL_FD;
 }
 
@@ -50,8 +53,10 @@ static int
 do_dup2(struct tcb *tcp, int flags_arg)
 {
 	printfd(tcp, tcp->u_arg[0]);
+    using_ori_fd_idx(tcp, 0);
 	tprints(", ");
 	printfd(tcp, tcp->u_arg[1]);
+    using_ori_fd_idx(tcp, 1);
 	if (flags_arg >= 0) {
 		tprints(", ");
 		printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");

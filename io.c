@@ -40,9 +40,13 @@ void print_arg_trace_read_write(struct tcb *tcp){
     printinvvar("buf", PRINT_ADDR, tcp->u_arg[1]);
     printinvvar("count", PRINT_LU, tcp->u_arg[2]);
 }
-
+#define NUM_RET_READ 2
 INV_FUNC(read)
 {
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_READ;
+
     if (tcp->flags & TCB_INV_TRACE){
         if (entering(tcp)) {
             invprints("\n");
@@ -58,11 +62,27 @@ INV_FUNC(read)
         }
     }
     else if(tcp->flags & TCB_INV_TAMPER){
-        kernel_long_t ret = tcp->u_rval;
-        /*tamper code read*/
 
-        /*end of temper code read*/
-        tcp->u_rval = ret;
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(read), &ibuf, num_ret);
+        }
+        if (count >= vcount){
+            // read the original data
+            unsigned int len = sizeof(char) * tcp->u_arg[2];
+            void* buf = malloc(len);
+            tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+            kernel_long_t ret = tcp->u_rval;
+
+            m_set mlist[NUM_RET_READ] = {{buf, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+			tprintf("\nmodified return: %ld \n", ret);
+            // write back the value;
+            tcp->u_rval = ret;
+            vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
+            free(buf);
+        }
+
     }
 
 }
@@ -72,6 +92,8 @@ SYS_FUNC(read)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
+		using_ori_fd(tcp);
+
 	} else {
 		if (syserror(tcp))
 			printaddr(tcp->u_arg[1]);
@@ -111,6 +133,7 @@ SYS_FUNC(write)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
+    using_ori_fd(tcp);
 	printstrn(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 	tprintf(", %" PRI_klu, tcp->u_arg[2]);
 
@@ -190,6 +213,16 @@ SYS_FUNC(readv)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
+        if (tcp->flags & TCB_INV_TAMPER){
+            fd_replace_entry *entry = get_fd_entry((int)tcp->u_arg[0]);
+            if (entry != NULL){
+                tprintf("fd modified from %ld to %d", tcp->u_arg[0], entry->orifd);
+                tcp->u_arg[0] = (kernel_ulong_t)entry->orifd;
+            }
+            else{
+                tprintf("not found fd %ld\n", tcp->u_arg[0]);
+            }
+        }
 	} else {
 		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1],
 				syserror(tcp) ? IOV_DECODE_ADDR :
@@ -203,6 +236,7 @@ SYS_FUNC(writev)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
+    using_ori_fd(tcp);
 	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], IOV_DECODE_STR);
 	tprintf(", %" PRI_klu, tcp->u_arg[2]);
 
@@ -214,6 +248,7 @@ SYS_FUNC(pread)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
+        using_ori_fd(tcp);
 	} else {
 		if (syserror(tcp))
 			printaddr(tcp->u_arg[1]);
@@ -229,6 +264,7 @@ SYS_FUNC(pwrite)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
+    using_ori_fd(tcp);
 	printstrn(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 	tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
 	printllval(tcp, "%lld", 3);
@@ -264,6 +300,7 @@ do_preadv(struct tcb *tcp, const int flags_arg)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
+        using_ori_fd(tcp);
 	} else {
 		kernel_ulong_t len =
 			truncate_kulong_to_current_wordsize(tcp->u_arg[2]);
@@ -294,6 +331,7 @@ do_pwritev(struct tcb *tcp, const int flags_arg)
 
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
+    using_ori_fd(tcp);
 	tprint_iov(tcp, len, tcp->u_arg[1], IOV_DECODE_STR);
 	tprintf(", %" PRI_klu ", ", len);
 	print_lld_from_low_high_val(tcp, 3);

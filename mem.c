@@ -123,6 +123,7 @@ print_mmap(struct tcb *tcp, kernel_ulong_t *u_arg, unsigned long long offset)
 	print_mmap_flags(flags);
 	tprints(", ");
 	printfd(tcp, fd);
+	using_ori_fd_idx(tcp, 4);
 	tprintf(", %#llx", offset);
 }
 

@@ -54,6 +54,7 @@ SYS_FUNC(fstat)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
+		using_ori_fd(tcp);
 	} else {
 		decode_struct_stat(tcp, tcp->u_arg[1]);
 	}

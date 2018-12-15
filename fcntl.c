@@ -196,6 +196,7 @@ SYS_FUNC(fcntl)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
+		using_ori_fd(tcp);
 		printxval(fcntlcmds, tcp->u_arg[1], "F_???");
 	}
 	return print_fcntl(tcp);
