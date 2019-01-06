@@ -200,7 +200,7 @@ INV_FUNC(epoll_wait)
         if (ibuf == NULL){
             vcount = read_fuzz_file(FUZZ_FILE(epoll_wait), &ibuf, num_ret);
         }
-        if (count >= vcount){
+        if (vcount >= 0 && count >= vcount){
             /* read data from tracee */
             kernel_long_t maxevents = tcp->u_arg[2];
             kernel_long_t ret = tcp->u_rval;
@@ -212,7 +212,10 @@ INV_FUNC(epoll_wait)
             m_set mlist[NUM_RET_EPOLL_WAIT] = {{events, len, VARIABLE_NORMAL},\
                                         {&ret, sizeof(int), VARIABLE_NORMAL}};
             fuzzing_return_value(ibuf, mlist, num_ret);
-            tprintf("\nmodified return: %ld \n", ret);
+            if (ibuf[1] == 1){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
 
 //		    ret = 1;
 //		    events->data.fd = 4100;
@@ -226,6 +229,11 @@ INV_FUNC(epoll_wait)
 //		    memcpy(&(events[2]), &node, sizeof(node));
 //		    events[1].data.ptr = &(child_event_addr[2]);
 
+//            for (int i = 0; i < maxevents; i++){
+//                events[i].data.ptr = child_event_addr;
+//                tprintf("\nevents[i].data.ptr : 0x%x \n", events[i].data.ptr);
+//            }
+//            ret = 53;
 
             /* end of temper code epoll_wait */
             /* write back data to tracee and clean up */
@@ -237,7 +245,6 @@ INV_FUNC(epoll_wait)
 
     }
 
-	return;
 }
 
 static void

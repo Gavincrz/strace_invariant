@@ -143,15 +143,19 @@ INV_FUNC(open)
 			printinvvar("return", PRINT_LD, tcp->u_rval);
 		}
 	}
-	else if(tcp->flags & TCB_INV_TAMPER){
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
         if (ibuf == NULL){
             vcount = read_fuzz_file(FUZZ_FILE(open), &ibuf, num_ret);
         }
-        if (count >= vcount){
+        if (vcount >= 0 && count >= vcount){
             kernel_long_t ret = tcp->u_rval;
             m_set mlist[NUM_RET_OPEN] = {{&ret, sizeof(int), VARIABLE_FD}};
             fuzzing_return_value(ibuf, mlist, num_ret);
-            tcp->u_rval = ret;
+
+            if (ibuf[0] == 1){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
         }
 	}
 }

@@ -1,5 +1,7 @@
+extern INV_FUNC(accept);
 extern INV_FUNC(epoll_wait);
 extern INV_FUNC(fstat);
+extern INV_FUNC(getsockname);
 extern INV_FUNC(getsockopt);
 extern INV_FUNC(open);
 extern INV_FUNC(read);

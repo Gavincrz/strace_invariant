@@ -938,10 +938,13 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 
     if (tcp->s_ent->invariant && (tcp->flags & TCB_INV_TRACE || tcp->flags & TCB_INV_TAMPER)){
         get_syscall_args(tcp);
+        get_syscall_result(tcp);
         int count = count_inv(tcp);
+        tcp->ret_modified = 0;
         tcp->s_ent->invariant_func(tcp, count);
     }
-    if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){
+    if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER && tcp->ret_modified){
+        //arch_set_all_reg(tcp);
         arch_set_success(tcp);
     }
 

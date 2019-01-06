@@ -73,11 +73,11 @@ INV_FUNC(fstat)
         }
         **/
     }
-    else if(tcp->flags & TCB_INV_TAMPER){
+    else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
         if (ibuf == NULL){
             vcount = read_fuzz_file(FUZZ_FILE(fstat), &ibuf, num_ret);
         }
-        if (count >= vcount){
+        if (vcount >= 0 && count >= vcount){
             // read the original data
             unsigned int len = sizeof(struct strace_stat);
             void* buf = malloc(len);
@@ -87,8 +87,10 @@ INV_FUNC(fstat)
             m_set mlist[NUM_RET_FSTAT] = {{buf, len, VARIABLE_NORMAL},\
                                         {&ret, sizeof(int), VARIABLE_NORMAL}};
             fuzzing_return_value(ibuf, mlist, num_ret);
-            tprintf("\nmodified return: %ld \n", ret);
-
+			if (ibuf[1] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
             // write back the value;
             tcp->u_rval = ret;
             vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);

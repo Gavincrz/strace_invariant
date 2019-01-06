@@ -739,7 +739,7 @@ after_successful_attach(struct tcb *tcp, const unsigned int flags)
 	}
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled || should_tamper)
+	if (stack_trace_enabled)
 		unwind_tcb_init(tcp);
 #endif
 }
@@ -836,7 +836,7 @@ droptcb(struct tcb *tcp)
 	free_tcb_priv_data(tcp);
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled || should_tamper)
+	if (stack_trace_enabled)
 		unwind_tcb_fin(tcp);
 #endif
 
@@ -2156,15 +2156,15 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 	    && is_number_in_set(WTERMSIG(status), signal_set)) {
 		printleader(tcp);
 #ifdef WCOREDUMP
-		tprintf("+++ killed by %s %s+++\n",
+		tprintf("+++ killed by %s %s pid = %d +++\n",
 			signame(WTERMSIG(status)),
-			WCOREDUMP(status) ? "(core dumped) " : "");
+			WCOREDUMP(status) ? "(core dumped) " : "", pid);
 #else
 		tprintf("+++ killed by %s +++\n",
 			signame(WTERMSIG(status)));
 #endif
 #ifdef ENABLE_STACKTRACE
-		if (stack_trace_enabled || should_tamper){
+		if (stack_trace_enabled){
                 unwind_tcb_print(tcp);
             }
 #endif
@@ -2204,7 +2204,7 @@ print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 		line_ended();
 
 #ifdef ENABLE_STACKTRACE
-		if (stack_trace_enabled || should_tamper){
+		if (stack_trace_enabled){
 			unwind_tcb_print(tcp);
 		}
 

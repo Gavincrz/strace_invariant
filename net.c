@@ -254,10 +254,59 @@ decode_sockname(struct tcb *tcp)
 
 	return RVAL_DECODED;
 }
+#define NUM_RET_ACCEPT 3
+INV_FUNC(accept)
+{
+
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_ACCEPT;
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace
+	}
+	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(accept), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			int ulen, rlen;
+			ulen = get_tcb_priv_ulong(tcp);
+			kernel_long_t ret = tcp->u_rval;
+			void *buf = malloc(ulen);
+
+
+			tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
+			tfetch_mem(tcp, tcp->u_arg[2], sizeof(int), &rlen);
+
+			tprintf("\noriginal rlen: %d -> ", rlen);
+			/* tamper code accept */
+			m_set mlist[NUM_RET_ACCEPT] = {{buf, ulen, VARIABLE_NORMAL},\
+										{&rlen, sizeof(int), VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_FD}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			tprintf("%d\n", rlen);
+			if (ibuf[2] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+
+
+			/* end of temper code accept */
+			/* write back data to tracee and clean up */
+			vm_write_mem(tcp->pid, buf, tcp->u_arg[1], ulen);
+			vm_write_mem(tcp->pid, &rlen, tcp->u_arg[2], sizeof(int));
+			tcp->u_rval = ret;
+			free(buf);
+		}
+
+
+	}
+}
 
 SYS_FUNC(accept)
 {
 	return decode_sockname(tcp) | RVAL_FD;
+
 }
 
 SYS_FUNC(accept4)
@@ -376,6 +425,56 @@ SYS_FUNC(recvfrom)
 SYS_FUNC(getsockname)
 {
 	return decode_sockname(tcp);
+}
+
+
+#define NUM_RET_GETSOCKNAME 3
+INV_FUNC(getsockname)
+{
+
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_GETSOCKNAME;
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace
+	}
+	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(getsockname), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			socklen_t ulen, rlen;
+			ulen = get_tcb_priv_ulong(tcp);
+			kernel_long_t ret = tcp->u_rval;
+			void *buf = malloc(ulen);
+
+
+			tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
+			tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &rlen);
+
+			tprintf("\noriginal rlen: %d -> ", rlen);
+			/* tamper code accept */
+			m_set mlist[NUM_RET_GETSOCKNAME] = {{buf, ulen, VARIABLE_NORMAL},\
+										{&rlen, sizeof(socklen_t), VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_FD}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			tprintf("%d\n", rlen);
+			if (ibuf[2] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+
+
+			/* end of temper code accept */
+			/* write back data to tracee and clean up */
+			vm_write_mem(tcp->pid, buf, tcp->u_arg[1], ulen);
+			vm_write_mem(tcp->pid, &rlen, tcp->u_arg[2], sizeof(socklen_t));
+			tcp->u_rval = ret;
+			free(buf);
+		}
+
+
+	}
 }
 
 static void

@@ -233,7 +233,7 @@ struct tcb {
 	struct timespec dtime;	/* Delta for system time usage */
 	struct timespec etime;	/* Syscall entry time */
 	struct timespec delay_expiration_time; /* When does the delay end */
-
+    int ret_modified; /* indicate if the return value is altered */
 	struct mmap_cache_t *mmap_cache;
 
 #ifdef HAVE_LINUX_KVM_H
