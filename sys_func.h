@@ -5,6 +5,8 @@ extern INV_FUNC(getsockname);
 extern INV_FUNC(getsockopt);
 extern INV_FUNC(open);
 extern INV_FUNC(read);
+extern INV_FUNC(recvmsg);
+extern INV_FUNC(sendto);
 extern INV_FUNC(write);
 extern SYS_FUNC(accept);
 extern SYS_FUNC(accept4);

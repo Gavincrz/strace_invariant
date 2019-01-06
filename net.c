@@ -351,6 +351,36 @@ SYS_FUNC(sendto)
 	return RVAL_DECODED;
 }
 
+#define NUM_RET_SENDTO 1
+INV_FUNC(sendto)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_SENDTO;
+
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(sendto), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			kernel_long_t ret = tcp->u_rval;
+
+			m_set mlist[NUM_RET_SENDTO] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[0] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+		}
+	}
+}
+
 SYS_FUNC(recv)
 {
 	if (entering(tcp)) {

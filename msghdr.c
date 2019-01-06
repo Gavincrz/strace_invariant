@@ -470,3 +470,44 @@ SYS_FUNC(recvmsg)
 
 	return RVAL_DECODED;
 }
+
+#define NUM_RET_RECVMSG 4
+INV_FUNC(recvmsg)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_RECVMSG;
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace for recvmsg
+	}
+	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(recvmsg), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			/* read data from tracee */
+			kernel_long_t ret = tcp->u_rval;
+			struct msghdr handler;
+			tfetch_mem(tcp, tcp->u_arg[1], sizeof(struct msghdr), &handler);
+
+			/* tamper code epoll_wait */
+
+			m_set mlist[NUM_RET_RECVMSG] = {{&(handler.msg_namelen), sizeof(socklen_t), VARIABLE_NORMAL},\
+										{&(handler.msg_iovlen), sizeof(size_t), VARIABLE_NORMAL},\
+										{&(handler.msg_controllen), sizeof(size_t), VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[3] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+
+			vm_write_mem(tcp->pid, &handler, tcp->u_arg[1], sizeof(struct msghdr));
+			tcp->u_rval = ret;
+		}
+
+
+	}
+}

@@ -134,9 +134,6 @@ INV_FUNC(write)
 		}
 		if (vcount >= 0 && count >= vcount){
 			// read the original data
-			unsigned int len = sizeof(char) * tcp->u_arg[2];
-			void* buf = malloc(len);
-			tfetch_mem(tcp, tcp->u_arg[1], len, buf);
 			kernel_long_t ret = tcp->u_rval;
 
 			m_set mlist[NUM_RET_WRITE] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
@@ -147,8 +144,6 @@ INV_FUNC(write)
 			}
 			// write back the value;
 			tcp->u_rval = ret;
-			vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
-			free(buf);
 		}
     }
 }
