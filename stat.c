@@ -28,6 +28,8 @@
 
 #include "defs.h"
 #include "stat.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 static void
 decode_struct_stat(struct tcb *const tcp, const kernel_ulong_t addr)
@@ -36,6 +38,43 @@ decode_struct_stat(struct tcb *const tcp, const kernel_ulong_t addr)
 
 	if (fetch_struct_stat(tcp, addr, &st))
 		print_struct_stat(tcp, &st);
+}
+
+#define NUM_RET_STAT 2
+INV_FUNC(stat)
+{
+
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_STAT;
+    if (tcp->flags & TCB_INV_TRACE){
+        //
+    }
+    else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(stat), &ibuf, num_ret);
+        }
+        if (vcount >= 0 && count >= vcount){
+            // read the original data
+            unsigned int len = sizeof(struct stat);
+            struct stat fetch_stat;
+            tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
+
+            kernel_long_t ret = tcp->u_rval;
+            m_set mlist[NUM_RET_STAT] = {{&fetch_stat, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+
+            if (ret != tcp->u_rval){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
+            // write back the value;
+            tcp->u_rval = ret;
+            vm_write_mem(tcp->pid, &fetch_stat, tcp->u_arg[1], len);
+        }
+    }
 }
 
 SYS_FUNC(stat)
@@ -58,20 +97,7 @@ INV_FUNC(fstat)
     static int num_ret = NUM_RET_FSTAT;
 
     if (tcp->flags & TCB_INV_TRACE){
-        /** NOT IMPLEMENT YET
-        if (entering(tcp)) {
-            invprints("\n");
-            invprints(ENTER_HEADER(read));
-            invprintf("%d\n", count);
-            print_arg_trace_read_write(tcp);
-        } else {
-            invprints("\n");
-            invprints(EXIT_HEADER(read));
-            invprintf("%d\n", count);
-            print_arg_trace_read_write(tcp);
-            printinvvar("return", PRINT_LD, tcp->u_rval);
-        }
-        **/
+
     }
     else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
         if (ibuf == NULL){
@@ -79,12 +105,13 @@ INV_FUNC(fstat)
         }
         if (vcount >= 0 && count >= vcount){
             // read the original data
-            unsigned int len = sizeof(struct strace_stat);
-            void* buf = malloc(len);
-            tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+            unsigned int len = sizeof(struct stat);
+            struct stat fetch_stat;
+            tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
+
             kernel_long_t ret = tcp->u_rval;
 
-            m_set mlist[NUM_RET_FSTAT] = {{buf, len, VARIABLE_NORMAL},\
+            m_set mlist[NUM_RET_FSTAT] = {{&fetch_stat, len, VARIABLE_NORMAL},\
                                         {&ret, sizeof(int), VARIABLE_NORMAL}};
             fuzzing_return_value(ibuf, mlist, num_ret);
 			if (ibuf[1] == 1){
@@ -93,8 +120,7 @@ INV_FUNC(fstat)
 			}
             // write back the value;
             tcp->u_rval = ret;
-            vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
-            free(buf);
+            vm_write_mem(tcp->pid, &fetch_stat, tcp->u_arg[1], len);
         }
 
     }

@@ -33,6 +33,37 @@
 #include "defs.h"
 #include "xstring.h"
 
+#define NUM_RET_CLOSE 1
+INV_FUNC(close)
+{
+
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_CLOSE;
+
+    if (tcp->flags & TCB_INV_TRACE){
+        //
+    }
+    else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(close), &ibuf, num_ret);
+        }
+        if (vcount >= 0 && count >= vcount){
+            // read the original data
+            kernel_long_t ret = tcp->u_rval;
+            m_set mlist[NUM_RET_CLOSE] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+            if (ret != tcp->u_rval){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
+            // write back the value;
+            tcp->u_rval = ret;
+        }
+    }
+}
+
 SYS_FUNC(close)
 {
 	printfd(tcp, tcp->u_arg[0]);

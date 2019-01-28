@@ -44,8 +44,41 @@
  * (see include/uapi/asm-generic/posix_types.h).
  * Use test/x32_lseek.c to test lseek decoding.
  */
+
+
+INV_FUNC(lseek)
+{
+
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = 1;
+
+	if (tcp->flags & TCB_INV_TRACE){
+
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(lseek), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			kernel_long_t ret = tcp->u_rval;
+			m_set mlist[1] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ret != tcp->u_rval){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+		}
+	}
+}
+
 SYS_FUNC(lseek)
 {
+	using_ori_fd(tcp);
 	printfd(tcp, tcp->u_arg[0]);
 
 	kernel_long_t offset;

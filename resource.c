@@ -117,6 +117,44 @@ decode_rlimit(struct tcb *const tcp, const kernel_ulong_t addr)
 
 #endif
 
+#define NUM_RET_GETRLIMIT 2
+INV_FUNC(getrlimit)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_GETRLIMIT;
+
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO:
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(getrlimit), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			unsigned int len = sizeof(struct rlimit);
+			void* buf = malloc(len);
+			tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+			kernel_long_t ret = tcp->u_rval;
+
+			m_set mlist[NUM_RET_GETRLIMIT] = {{buf, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[1] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+			vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
+			free(buf);
+		}
+
+	}
+}
+
 SYS_FUNC(getrlimit)
 {
 	if (entering(tcp)) {
@@ -152,6 +190,44 @@ SYS_FUNC(prlimit64)
 }
 
 #include "xlat/usagewho.h"
+
+#define  NUM_RET_GETRUSAGE 2
+INV_FUNC(getrusage)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_GETRUSAGE;
+
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO:
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(getrusage), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			unsigned int len = sizeof(struct rusage);
+			void* buf = malloc(len);
+			tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+			kernel_long_t ret = tcp->u_rval;
+
+			m_set mlist[NUM_RET_GETRUSAGE] = {{buf, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[1] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+			vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
+			free(buf);
+		}
+
+	}
+}
 
 SYS_FUNC(getrusage)
 {

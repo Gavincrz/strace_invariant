@@ -310,6 +310,9 @@ struct tcb {
 
 #include "xlat.h"
 
+/** Output system call name, defined in strace.c */
+extern char *out_syscall_name;
+
 extern const struct xlat addrfams[];
 
 /** Protocol hardware identifiers array, sorted, defined in sockaddr.c. */
@@ -467,6 +470,9 @@ extern unsigned os_release;
 #undef KERNEL_VERSION
 #define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 
+#define OUT_PUT_DIRECOTRY "/home/gavin/syscall_ret_fuzzer/"
+#define OUT_COUNT_FILE  OUT_PUT_DIRECOTRY "final_count.txt"
+#define OUT_PID_FILE OUT_PUT_DIRECOTRY "pid.txt"
 #define INPUT_DIRECTORY "/home/gavin/strace/return/"
 #define FUZZ_FILE(scname)  INPUT_DIRECTORY #scname ".input"
 extern void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret);

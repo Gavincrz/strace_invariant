@@ -262,6 +262,44 @@ SYS_FUNC(writev)
 	return RVAL_DECODED;
 }
 
+#define NUM_RET_PREAD 2
+INV_FUNC(pread)
+{
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_PREAD;
+
+    if (tcp->flags & TCB_INV_TRACE){
+        //TODO:
+    }
+    else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(pread64), &ibuf, num_ret);
+        }
+        if (vcount >= 0 && count >= vcount){
+            // read the original data
+            unsigned int len = sizeof(char) * tcp->u_arg[2];
+            void* buf = malloc(len);
+            tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+            kernel_long_t ret = tcp->u_rval;
+
+            m_set mlist[NUM_RET_PREAD] = {{buf, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+            if (ibuf[1] == 1){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
+            // write back the value;
+            tcp->u_rval = ret;
+            vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
+            free(buf);
+        }
+
+    }
+}
+
 SYS_FUNC(pread)
 {
 	if (entering(tcp)) {

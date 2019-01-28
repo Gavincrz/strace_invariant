@@ -981,9 +981,13 @@ void print_arg_trace_getsockopt(struct tcb *tcp)
     };
 }
 
-
+#define  NUM_RET_GETSOCKOPT 3
 INV_FUNC(getsockopt)
 {
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_GETSOCKOPT;
+    tprintf("\nentering !!!!!!!!!!!!!!!\n");
 	if (tcp->flags & TCB_INV_TRACE){
 		if (entering(tcp)) {
 			invprints("\n");
@@ -999,13 +1003,41 @@ INV_FUNC(getsockopt)
 		}
 	}
 	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
-		/* read data from tracee */
+		tprintf("\nentering2 !!!!!!!!!!!!!!!\n");
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(getsockopt), &ibuf, num_ret);
+        }
+        tprintf("\nvcount:%d !!!!!!!!!!!!!!!, count:%d, %d\n", vcount, count, vcount >= 0 && count >= vcount);
+        if (vcount >= 0 && count >= vcount){
+			tprintf("\nentering3 !!!!!!!!!!!!!!!\n");
+            socklen_t ulen, rlen;
+            ulen = get_tcb_priv_ulong(tcp);
+            kernel_long_t ret = tcp->u_rval;
+            void *buf = malloc(ulen);
 
-		/* tamper code getsockopt */
+            tfetch_mem(tcp, tcp->u_arg[3], ulen, buf);
+            tfetch_mem(tcp, tcp->u_arg[4], sizeof(socklen_t), &rlen);
 
-		/* end of temper code getsockopt */
+            tprintf("\noriginal rlen: %d -> ", rlen);
+            /* tamper code accept */
+            m_set mlist[NUM_RET_GETSOCKOPT] = {{buf, ulen, VARIABLE_NORMAL},\
+										{&rlen, sizeof(socklen_t), VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_FD}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+            tprintf("%d\n", rlen);
+            if (ibuf[2] == 1){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
 
-		/* write back data to tracee and clean up */
+
+            /* end of temper code accept */
+            /* write back data to tracee and clean up */
+            vm_write_mem(tcp->pid, buf, tcp->u_arg[3], ulen);
+            vm_write_mem(tcp->pid, &rlen, tcp->u_arg[4], sizeof(socklen_t));
+            tcp->u_rval = ret;
+            free(buf);
+        }
 
 	}
 }

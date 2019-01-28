@@ -377,7 +377,6 @@ int read_fuzz_file(const char* filename, int **ibuf, int num_var){
             if (ptr != NULL){
                 count = atoi(ptr);
                 *ibuf = (int *)malloc(sizeof(int) * (num_var));
-
                 // read the second line: value
                 nread = getline(&line, &len, fp);
                 assert(nread != -1);

@@ -688,9 +688,9 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 		tcp->s_ent->invariant_func(tcp, count);
 
 	}
-	if (tcp->flags & TCB_INV_TAMPER){
-        arch_set_all_reg(tcp);
-	}
+//	if (tcp->flags & TCB_INV_TAMPER){
+//        arch_set_all_reg(tcp);
+//	}
 
 	fflush(tcp->outf);
 	return res;
@@ -941,9 +941,16 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
         get_syscall_result(tcp);
         int count = count_inv(tcp);
         tcp->ret_modified = 0;
+
+        if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
+            // this is the target system call, update count
+            FILE* fptr = fopen(OUT_COUNT_FILE, "w+");
+            fprintf(fptr, "%d\n", count);
+            fclose(fptr);
+        }
         tcp->s_ent->invariant_func(tcp, count);
     }
-    if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER && tcp->ret_modified){
+    if (tcp->s_ent->invariant && (tcp->flags & TCB_INV_TAMPER) && (tcp->ret_modified)){
         //arch_set_all_reg(tcp);
         arch_set_success(tcp);
     }

@@ -67,6 +67,8 @@ extern int optind;
 extern char *optarg;
 static FILE *invf;
 bool should_tamper = false;
+char *out_syscall_name;
+
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;
@@ -1622,7 +1624,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:cCdDe:E:fFg:GhiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1637,6 +1639,9 @@ init(int argc, char *argv[])
 				error_msg_and_die("Syscall '%s' for -b isn't supported",
 					optarg);
 			detach_on_execve = 1;
+			break;
+		case 'B':
+			out_syscall_name = optarg;
 			break;
 		case 'c':
 			if (cflag == CFLAG_BOTH) {
@@ -2159,6 +2164,13 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 		tprintf("+++ killed by %s %s pid = %d +++\n",
 			signame(WTERMSIG(status)),
 			WCOREDUMP(status) ? "(core dumped) " : "", pid);
+
+		if (WCOREDUMP(status)){
+			// write to pid file
+			FILE *fptr = fopen(OUT_PID_FILE, "w+");
+			fprintf(fptr, "%d\n", pid);
+			fclose(fptr);
+		}
 #else
 		tprintf("+++ killed by %s +++\n",
 			signame(WTERMSIG(status)));
@@ -2759,6 +2771,7 @@ terminate(void)
 #ifdef ENABLE_COVERAGE_GCOV
 		__gcov_flush();
 #endif
+		fprintf(stderr, "exit code is %d \n", exit_code);
 		raise(exit_code);
 
 		/* Unblock the signal.  */
@@ -2774,6 +2787,7 @@ terminate(void)
 		   Exit with 128 + signo then.  */
 		exit_code += 128;
 	}
+
 	exit(exit_code);
 }
 

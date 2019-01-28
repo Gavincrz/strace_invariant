@@ -152,6 +152,46 @@ decode_poll_exiting(struct tcb *const tcp, const kernel_ulong_t pts)
 #undef end_outstr
 }
 
+#define NUM_RET_POLL 2
+INV_FUNC(poll)
+{
+
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_POLL;
+	if (tcp->flags & TCB_INV_TRACE){
+		//
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(poll), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			unsigned int nfds = nfds = tcp->u_arg[1];
+			unsigned int len = sizeof(struct pollfd) * nfds;
+			struct pollfd* fds = (struct pollfd *)malloc(len);
+
+			tfetch_mem(tcp, tcp->u_arg[1], len, fds);
+
+			kernel_long_t ret = tcp->u_rval;
+			m_set mlist[NUM_RET_POLL] = {{fds, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+
+			if (ret != tcp->u_rval){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+			vm_write_mem(tcp->pid, fds, tcp->u_arg[1], len);
+			free(fds);
+		}
+	}
+}
+
 SYS_FUNC(poll)
 {
 	if (entering(tcp)) {
