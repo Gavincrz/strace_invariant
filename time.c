@@ -237,6 +237,43 @@ SYS_FUNC(clock_settime)
 	return RVAL_DECODED;
 }
 
+
+#define NUM_RET_CLOCKGETTIME 2
+INV_FUNC(clock_gettime)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_CLOCKGETTIME;
+
+	if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(clock_gettime), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			kernel_long_t ret = tcp->u_rval;
+			unsigned int len = sizeof(struct timespec);
+			struct timespec timebuf;
+			if (tcp->u_arg[1] != 0) {
+				tfetch_mem(tcp, tcp->u_arg[1], len, &timebuf);
+			}
+
+			m_set mlist[NUM_RET_CLOCKGETTIME] = {{&timebuf, len, VARIABLE_NORMAL},
+											  {&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[1] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			if (tcp->u_arg[1] != 0) {
+				vm_write_mem(tcp->pid, &timebuf, tcp->u_arg[1], len);
+			}
+			tcp->u_rval = ret;
+		}
+	}
+}
+
 SYS_FUNC(clock_gettime)
 {
 	if (entering(tcp)) {

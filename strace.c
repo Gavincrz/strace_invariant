@@ -67,7 +67,12 @@ extern int optind;
 extern char *optarg;
 static FILE *invf;
 bool should_tamper = false;
-char *out_syscall_name;
+char *out_syscall_name = NULL;
+char *accept_syscall = NULL;
+char *record_file = NULL; // output syscall sequence to it
+pid_t fuzzer_pid = -1;
+bool after_accept = false;
+bool accept_called = false;
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -1624,7 +1629,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lL:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1691,11 +1696,23 @@ init(int argc, char *argv[])
 			if (opt_intr <= 0)
 				error_opt_arg(c, optarg);
 			break;
+		case 'j':
+			accept_syscall = optarg; // accept syscall name
+			break;
+		case 'J':
+		    fuzzer_pid = string_to_uint(optarg); // parent pid
+		    break;
 #ifdef ENABLE_STACKTRACE
 		case 'k':
 			stack_trace_enabled = true;
 			break;
 #endif
+		case 'l':
+            after_accept = true;
+		    break;
+		case 'L': // record syscall get called
+            record_file = optarg;
+            break;
 		case 'o':
 			outfname = optarg;
 			break;
@@ -1789,6 +1806,14 @@ init(int argc, char *argv[])
 				  "please use -f instead");
 			followfork = optF;
 		}
+	}
+
+	if (after_accept && accept_syscall == NULL) {
+        error_msg_and_help("accept syscall must be set (-j) by setting after_accept (-l)");
+	}
+
+	if (record_file != NULL) {
+		remove(record_file);
 	}
 
 	if (followfork >= 2 && cflag) {
@@ -2291,6 +2316,10 @@ print_event_exit(struct tcb *tcp)
 	tabto();
 	tprints("= ?\n");
 	line_ended();
+#ifdef ENABLE_STACKTRACE
+    if (stack_trace_enabled)
+		unwind_tcb_fin(tcp);
+#endif
 }
 
 static const struct tcb_wait_data *

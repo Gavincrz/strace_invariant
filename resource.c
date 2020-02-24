@@ -189,6 +189,42 @@ SYS_FUNC(prlimit64)
 	return 0;
 }
 
+#define NUM_RET_PRLIMIT64 2
+INV_FUNC(prlimit64)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_PRLIMIT64;
+
+	if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(prlimit64), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			kernel_long_t ret = tcp->u_rval;
+			unsigned int len = sizeof(struct rlimit);
+			struct rlimit limitbuf;
+			if (tcp->u_arg[3] != 0) {
+				tfetch_mem(tcp, tcp->u_arg[3], len, &limitbuf);
+			}
+
+			m_set mlist[NUM_RET_PRLIMIT64] = {{&limitbuf, len, VARIABLE_NORMAL},
+									 {&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[1] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			if (tcp->u_arg[3] != 0) {
+				vm_write_mem(tcp->pid, &limitbuf, tcp->u_arg[3], len);
+			}
+			tcp->u_rval = ret;
+		}
+	}
+}
+
 #include "xlat/usagewho.h"
 
 #define  NUM_RET_GETRUSAGE 2

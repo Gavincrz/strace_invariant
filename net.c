@@ -134,6 +134,36 @@ tprint_sock_type(unsigned int flags)
 	printflags(sock_type_flags, flags, "SOCK_???");
 }
 
+
+#define NUM_RET_SOCKET 1
+INV_FUNC(socket)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_SOCKET;
+
+	if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(socket), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			kernel_long_t ret = tcp->u_rval;
+
+			m_set mlist[NUM_RET_SOCKET] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[0] == 1){
+				tprintf("\n getcwd modified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+		}
+
+	}
+
+}
+
 SYS_FUNC(socket)
 {
 	printxval(addrfams, tcp->u_arg[0], "AF_???");
@@ -381,6 +411,8 @@ INV_FUNC(sendto)
 	}
 }
 
+
+
 SYS_FUNC(recv)
 {
 	if (entering(tcp)) {
@@ -398,6 +430,56 @@ SYS_FUNC(recv)
 		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 	}
 	return 0;
+}
+
+
+#define NUM_RET_RECVFROM 3
+INV_FUNC(recvfrom)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_RECVFROM;
+	int ulen, rlen;
+
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		tprintf("\n entering recvfrom");
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(recvfrom), &ibuf, num_ret);
+		}
+		tprintf("\n count = %d, vcount = %d", count, vcount);
+		if (vcount >= 0 && count >= vcount){
+			void *buf = malloc(ulen);
+			// read the original data
+			kernel_long_t ret = tcp->u_rval;
+
+			ulen = get_tcb_priv_ulong(tcp);
+
+			tfetch_mem(tcp, tcp->u_arg[4], ulen, buf);
+			tfetch_mem(tcp, tcp->u_arg[5], sizeof(socklen_t), &rlen);
+
+
+			m_set mlist[NUM_RET_RECVFROM] = {{&ret, sizeof(int), VARIABLE_NORMAL},
+											 {buf, ulen, VARIABLE_NORMAL},
+											 {&rlen, sizeof(socklen_t), VARIABLE_NORMAL}};
+
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[0] == 1){
+				tprintf("\n recvfrom modified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+
+			/* write back data to tracee and clean up */
+			vm_write_mem(tcp->pid, buf, tcp->u_arg[4], ulen);
+			vm_write_mem(tcp->pid, &rlen, tcp->u_arg[5], sizeof(socklen_t));
+
+			free(buf);
+		}
+	}
 }
 
 SYS_FUNC(recvfrom)

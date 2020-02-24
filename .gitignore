@@ -24,6 +24,7 @@
 /config.sub
 #/configure
 /depcomp
+/return
 /gnu
 /INSTALL
 /install-sh

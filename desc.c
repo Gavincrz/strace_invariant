@@ -33,6 +33,36 @@
 #include "defs.h"
 #include "xstring.h"
 
+INV_FUNC(getpid)
+{
+    INV_FUNC_RET_ONLY(getpid)
+}
+
+INV_FUNC(getppid)
+{
+    INV_FUNC_RET_ONLY(getppid)
+}
+
+INV_FUNC(getgid)
+{
+    INV_FUNC_RET_ONLY(getgid)
+}
+
+INV_FUNC(getuid)
+{
+    INV_FUNC_RET_ONLY(getuid)
+}
+
+INV_FUNC(getegid)
+{
+    INV_FUNC_RET_ONLY(getegid)
+}
+
+INV_FUNC(geteuid)
+{
+    INV_FUNC_RET_ONLY(geteuid)
+}
+
 #define NUM_RET_CLOSE 1
 INV_FUNC(close)
 {
@@ -55,7 +85,7 @@ INV_FUNC(close)
             m_set mlist[NUM_RET_CLOSE] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
             fuzzing_return_value(ibuf, mlist, num_ret);
             if (ret != tcp->u_rval){
-                tprintf("\nmodified return: %ld \n", ret);
+                tprintf("\nmodified return: %ld count = %d\n", ret, count);
                 tcp->ret_modified = 1;
             }
             // write back the value;
@@ -95,6 +125,17 @@ do_dup2(struct tcb *tcp, int flags_arg)
 	}
 
 	return RVAL_DECODED | RVAL_FD;
+}
+
+
+INV_FUNC(dup2)
+{
+    INV_FUNC_RET_ONLY(dup2)
+}
+
+INV_FUNC(dup3)
+{
+    INV_FUNC_RET_ONLY(dup3)
 }
 
 SYS_FUNC(dup2)
@@ -256,6 +297,65 @@ SYS_FUNC(osf_select)
 }
 #endif
 
+#define NUM_RET_SELECT 5
+INV_FUNC(select)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_SELECT;
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace
+	}
+	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(select), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			kernel_long_t ret = tcp->u_rval;
+			size_t fd_size = sizeof(fd_set);
+
+			fd_set *readfds = (fd_set*)malloc(fd_size);
+			fd_set *writefds = (fd_set*)malloc(fd_size);
+			fd_set *exceptfds = (fd_set*)malloc(fd_size);
+			struct timeval *timeout = (struct timeval*)malloc(sizeof(struct timeval));
+
+			tfetch_mem(tcp, tcp->u_arg[1], fd_size, readfds);
+			tfetch_mem(tcp, tcp->u_arg[2], fd_size, writefds);
+			tfetch_mem(tcp, tcp->u_arg[3], fd_size, exceptfds);
+			tfetch_mem(tcp, tcp->u_arg[4], sizeof(struct timeval), timeout);
+
+			/* tamper code accept */
+			m_set mlist[NUM_RET_SELECT] = {{readfds, fd_size, VARIABLE_NORMAL},\
+										{writefds, fd_size, VARIABLE_NORMAL},\
+										{exceptfds, fd_size, VARIABLE_NORMAL},\
+										{timeout, sizeof(struct timeval), VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_FD}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+
+			if (ibuf[4] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+
+
+			/* end of temper code accept */
+			/* write back data to tracee and clean up */
+			vm_write_mem(tcp->pid, readfds, tcp->u_arg[1], fd_size);
+			vm_write_mem(tcp->pid, writefds, tcp->u_arg[2], fd_size);
+			vm_write_mem(tcp->pid, exceptfds, tcp->u_arg[3], fd_size);
+			vm_write_mem(tcp->pid, timeout, tcp->u_arg[4], sizeof(struct timeval));
+			tcp->u_rval = ret;
+
+			free(readfds);
+			free(writefds);
+			free(exceptfds);
+			free(timeout);
+		}
+
+
+	}
+}
+
 SYS_FUNC(select)
 {
 	return decode_select(tcp, tcp->u_arg, print_timeval, sprint_timeval);
@@ -279,6 +379,61 @@ umove_kulong_array_or_printaddr(struct tcb *const tcp, const kernel_ulong_t addr
 	}
 #endif /* !current_klongsize */
 	return umoven_or_printaddr(tcp, addr, n * sizeof(*ptr), ptr);
+}
+
+
+#define NUM_RET_PSELECT6 4
+INV_FUNC(pselect6)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_PSELECT6;
+	if (tcp->flags & TCB_INV_TRACE){
+		//TODO: print trace
+	}
+	else if (tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(pselect6), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			kernel_long_t ret = tcp->u_rval;
+			size_t fd_size = sizeof(fd_set);
+
+			fd_set *readfds = (fd_set*)malloc(fd_size);
+			fd_set *writefds = (fd_set*)malloc(fd_size);
+			fd_set *exceptfds = (fd_set*)malloc(fd_size);
+
+			tfetch_mem(tcp, tcp->u_arg[1], fd_size, readfds);
+			tfetch_mem(tcp, tcp->u_arg[2], fd_size, writefds);
+			tfetch_mem(tcp, tcp->u_arg[3], fd_size, exceptfds);
+
+			/* tamper code accept */
+			m_set mlist[NUM_RET_PSELECT6] = {{readfds, fd_size, VARIABLE_NORMAL},\
+										{writefds, fd_size, VARIABLE_NORMAL},\
+										{exceptfds, fd_size, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_FD}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+
+			if (ibuf[3] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+
+
+			/* end of temper code accept */
+			/* write back data to tracee and clean up */
+			vm_write_mem(tcp->pid, readfds, tcp->u_arg[1], fd_size);
+			vm_write_mem(tcp->pid, writefds, tcp->u_arg[2], fd_size);
+			vm_write_mem(tcp->pid, exceptfds, tcp->u_arg[3], fd_size);
+			tcp->u_rval = ret;
+
+			free(readfds);
+			free(writefds);
+			free(exceptfds);
+		}
+
+
+	}
 }
 
 SYS_FUNC(pselect6)

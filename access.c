@@ -14,6 +14,12 @@ decode_access(struct tcb *tcp, int offset)
 	return RVAL_DECODED;
 }
 
+
+INV_FUNC(access)
+{
+	INV_FUNC_RET_ONLY(access)
+}
+
 SYS_FUNC(access)
 {
 	return decode_access(tcp, 0);

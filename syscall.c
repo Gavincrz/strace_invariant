@@ -41,6 +41,8 @@
 #include "delay.h"
 #include "retval.h"
 #include <limits.h>
+#include <sys/types.h>
+#include <signal.h>
 
 /* for struct iovec */
 #include <sys/uio.h>
@@ -633,6 +635,19 @@ syscall_entering_decode(struct tcb *tcp)
 int
 syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 {
+
+    // if it is the accept sycall, send signal to fuzzer_pid
+    if (accept_syscall != NULL
+        && fuzzer_pid > 0
+        && !accept_called /* only send signal once*/
+        && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0){
+        fprintf(stderr, "sending signal %d to parent script, parent pid %d\n",
+                SIGRTMAX-7, fuzzer_pid);
+        kill(fuzzer_pid, SIGRTMAX-7);
+        accept_called = true;
+
+    }
+
 	if (hide_log(tcp)) {
 		/*
 		 * Restrain from fault injection
@@ -673,23 +688,30 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 	}
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled) {
-		if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
-			unwind_tcb_capture(tcp);
-	}
+//	if (stack_trace_enabled) {
+//		if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
+//			unwind_tcb_capture(tcp);
+//	}
 #endif
+    if (!after_accept || (after_accept && accept_called)) {
+        if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER) {
+            if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
+                if (stack_trace_enabled) {
+                    if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
+                        unwind_tcb_capture(tcp);
+                }
+            }
+        }
+	}
 
 	printleader(tcp);
 	tprintf("%s(", tcp->s_ent->sys_name);
 	int res = raw(tcp) ? printargs(tcp) : tcp->s_ent->sys_func(tcp);
 
-	if (tcp->flags & TCB_INV_TRACE && tcp->s_ent->invariant){
-        int count = get_inv_count(tcp);
-		tcp->s_ent->invariant_func(tcp, count);
-
-	}
-//	if (tcp->flags & TCB_INV_TAMPER){
-//        arch_set_all_reg(tcp);
+//	if (tcp->flags & TCB_INV_TRACE && tcp->s_ent->invariant){
+//        int count = get_inv_count(tcp);
+//		tcp->s_ent->invariant_func(tcp, count);
+//
 //	}
 
 	fflush(tcp->outf);
@@ -745,6 +767,13 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	if (syscall_tampered(tcp) || inject_delay_exit(tcp))
 		tamper_with_syscall_exiting(tcp);
 
+	if (record_file != NULL
+	    && (!after_accept || (after_accept && accept_called))) {
+	    // append the syscall to record file
+        FILE* fptr = fopen(record_file, "a+");
+        fprintf(fptr, "%s\n", tcp->s_ent->sys_name);
+        fclose(fptr);
+	}
 	if (cflag) {
 		count_syscall(tcp, ts);
 		if (cflag == CFLAG_ONLY_STATS) {
@@ -932,29 +961,31 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	line_ended();
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
-		unwind_tcb_print(tcp);
+//	if (stack_trace_enabled)
+//		unwind_tcb_print(tcp);
 #endif
+    if (!after_accept || (after_accept && accept_called)) { // do the fuzzing after accept called
+        if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){
+            get_syscall_args(tcp);
+            get_syscall_result(tcp);
+            int count = count_inv(tcp);
+            tcp->ret_modified = 0;
 
-    if (tcp->s_ent->invariant && (tcp->flags & TCB_INV_TRACE || tcp->flags & TCB_INV_TAMPER)){
-        get_syscall_args(tcp);
-        get_syscall_result(tcp);
-        int count = count_inv(tcp);
-        tcp->ret_modified = 0;
+            if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
+                // this is the target system call, update count
+                FILE* fptr = fopen(OUT_COUNT_FILE, "w+");
+                fprintf(fptr, "%d\n", count);
+                fclose(fptr);
+                if (stack_trace_enabled)
+                    unwind_tcb_print(tcp);
+            }
 
-        if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
-            // this is the target system call, update count
-            FILE* fptr = fopen(OUT_COUNT_FILE, "w+");
-            fprintf(fptr, "%d\n", count);
-            fclose(fptr);
+            tcp->s_ent->invariant_func(tcp, count);
+            if (tcp->ret_modified) { // set return value back
+                arch_set_success(tcp);
+            }
         }
-        tcp->s_ent->invariant_func(tcp, count);
     }
-    if (tcp->s_ent->invariant && (tcp->flags & TCB_INV_TAMPER) && (tcp->ret_modified)){
-        //arch_set_all_reg(tcp);
-        arch_set_success(tcp);
-    }
-
 	return 0;
 }
 

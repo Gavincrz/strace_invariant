@@ -156,6 +156,8 @@ INV_FUNC(open)
                 tprintf("\nmodified return: %ld \n", ret);
                 tcp->ret_modified = 1;
             }
+
+			tcp->u_rval = ret;
         }
 	}
 }
@@ -180,6 +182,33 @@ SYS_FUNC(open)
 {
 	return decode_open(tcp, 0);
 }
+
+
+#define NUM_RET_OPENAT 1
+INV_FUNC(openat)
+{
+    static int *ibuf = NULL;
+    static int vcount;
+    static int num_ret = NUM_RET_OPENAT;
+    if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+        if (ibuf == NULL){
+            vcount = read_fuzz_file(FUZZ_FILE(openat), &ibuf, num_ret);
+        }
+        if (vcount >= 0 && count >= vcount){
+            kernel_long_t ret = tcp->u_rval;
+            m_set mlist[NUM_RET_OPENAT] = {{&ret, sizeof(int), VARIABLE_FD}};
+            fuzzing_return_value(ibuf, mlist, num_ret);
+
+            if (ibuf[0] == 1){
+                tprintf("\nmodified return: %ld \n", ret);
+                tcp->ret_modified = 1;
+            }
+
+            tcp->u_rval = ret;
+        }
+    }
+}
+
 
 SYS_FUNC(openat)
 {

@@ -57,6 +57,35 @@ decode_readlink(struct tcb *tcp, int offset)
 	return 0;
 }
 
+#define NUM_RET_READLINK 1
+INV_FUNC(readlink)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_READLINK;
+
+	if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(readlink), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			kernel_long_t ret = tcp->u_rval;
+
+			m_set mlist[NUM_RET_READLINK] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[0] == 1){
+				tprintf("\n readlink modified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+		}
+
+	}
+
+}
+
 SYS_FUNC(readlink)
 {
 	return decode_readlink(tcp, 0);

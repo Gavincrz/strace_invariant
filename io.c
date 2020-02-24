@@ -40,7 +40,8 @@ void print_arg_trace_read_write(struct tcb *tcp){
     printinvvar("buf", PRINT_ADDR, tcp->u_arg[1]);
     printinvvar("count", PRINT_LU, tcp->u_arg[2]);
 }
-#define NUM_RET_READ 2
+
+#define NUM_RET_READ 1
 INV_FUNC(read)
 {
     static int *ibuf = NULL;
@@ -67,25 +68,16 @@ INV_FUNC(read)
             vcount = read_fuzz_file(FUZZ_FILE(read), &ibuf, num_ret);
         }
         if (vcount >= 0 && count >= vcount){
-            // read the original data
-            unsigned int len = sizeof(char) * tcp->u_arg[2];
-            void* buf = malloc(len);
-            tfetch_mem(tcp, tcp->u_arg[1], len, buf);
-            kernel_long_t ret = tcp->u_rval;
-
-            m_set mlist[NUM_RET_READ] = {{buf, len, VARIABLE_NORMAL},\
-                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
-            fuzzing_return_value(ibuf, mlist, num_ret);
-            if (ibuf[1] == 1){
-                tprintf("\nmodified return: %ld \n", ret);
-                tcp->ret_modified = 1;
-            }
-            // write back the value;
-            tcp->u_rval = ret;
-            vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
-            free(buf);
+			kernel_long_t ret = tcp->u_rval;
+			m_set mlist[NUM_RET_READ] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[0] == 1){
+				tprintf("\n read modified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
         }
-
     }
 
 }
@@ -262,7 +254,7 @@ SYS_FUNC(writev)
 	return RVAL_DECODED;
 }
 
-#define NUM_RET_PREAD 2
+#define NUM_RET_PREAD 1
 INV_FUNC(pread)
 {
     static int *ibuf = NULL;
@@ -278,25 +270,17 @@ INV_FUNC(pread)
             vcount = read_fuzz_file(FUZZ_FILE(pread64), &ibuf, num_ret);
         }
         if (vcount >= 0 && count >= vcount){
-            // read the original data
-            unsigned int len = sizeof(char) * tcp->u_arg[2];
-            void* buf = malloc(len);
-            tfetch_mem(tcp, tcp->u_arg[1], len, buf);
             kernel_long_t ret = tcp->u_rval;
 
-            m_set mlist[NUM_RET_PREAD] = {{buf, len, VARIABLE_NORMAL},\
-                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+            m_set mlist[NUM_RET_PREAD] = {{&ret, sizeof(int), VARIABLE_NORMAL}};
             fuzzing_return_value(ibuf, mlist, num_ret);
-            if (ibuf[1] == 1){
+            if (ibuf[0] == 1){
                 tprintf("\nmodified return: %ld \n", ret);
                 tcp->ret_modified = 1;
             }
             // write back the value;
             tcp->u_rval = ret;
-            vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
-            free(buf);
         }
-
     }
 }
 

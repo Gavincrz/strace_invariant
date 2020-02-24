@@ -39,6 +39,44 @@
 typedef struct sysinfo sysinfo_t;
 #include MPERS_DEFS
 
+
+#define NUM_RET_SYSINFO 2
+INV_FUNC(sysinfo)
+{
+	static int *ibuf = NULL;
+	static int vcount;
+	static int num_ret = NUM_RET_SYSINFO;
+
+	if (tcp->flags & TCB_INV_TRACE){
+
+	}
+	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
+		if (ibuf == NULL){
+			vcount = read_fuzz_file(FUZZ_FILE(sysinfo), &ibuf, num_ret);
+		}
+		if (vcount >= 0 && count >= vcount){
+			// read the original data
+			unsigned int len = sizeof(struct sysinfo);
+			struct sysinfo fetch_info;
+			tfetch_mem(tcp, tcp->u_arg[0], len, &fetch_info);
+
+			kernel_long_t ret = tcp->u_rval;
+
+			m_set mlist[NUM_RET_SYSINFO] = {{&fetch_info, len, VARIABLE_NORMAL},\
+                                        {&ret, sizeof(int), VARIABLE_NORMAL}};
+			fuzzing_return_value(ibuf, mlist, num_ret);
+			if (ibuf[1] == 1){
+				tprintf("\nmodified return: %ld \n", ret);
+				tcp->ret_modified = 1;
+			}
+			// write back the value;
+			tcp->u_rval = ret;
+			vm_write_mem(tcp->pid, &fetch_info, tcp->u_arg[0], len);
+		}
+
+	}
+}
+
 SYS_FUNC(sysinfo)
 {
 	sysinfo_t si;

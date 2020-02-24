@@ -212,9 +212,14 @@ INV_FUNC(epoll_wait)
             m_set mlist[NUM_RET_EPOLL_WAIT] = {{events, len, VARIABLE_NORMAL},\
                                         {&ret, sizeof(int), VARIABLE_NORMAL}};
             fuzzing_return_value(ibuf, mlist, num_ret);
+
             if (ibuf[1] == 1){
                 tprintf("\nmodified return: %ld \n", ret);
                 tcp->ret_modified = 1;
+            }
+
+            if (ibuf[0] == 1){
+                tprintf("\nmodified events\n");
             }
 
 //		    ret = 1;
@@ -224,11 +229,12 @@ INV_FUNC(epoll_wait)
 //		    node.fd = 4100;
 //		    node.handler = 0x4092ac;
 //
-//		    struct epoll_event *child_event_addr =  (struct epoll_event *)tcp->u_arg[1];
+//            if (ibuf[0] == 1) {
+//                struct epoll_event *child_event_addr = (struct epoll_event *) tcp->u_arg[1];
 //
 //		    memcpy(&(events[2]), &node, sizeof(node));
-//		    events[1].data.ptr = &(child_event_addr[2]);
-
+//                events[0].data.ptr = &(child_event_addr[1]);
+//            }
 //            for (int i = 0; i < maxevents; i++){
 //                events[i].data.ptr = child_event_addr;
 //                tprintf("\nevents[i].data.ptr : 0x%x \n", events[i].data.ptr);

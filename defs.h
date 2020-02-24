@@ -312,6 +312,12 @@ struct tcb {
 
 /** Output system call name, defined in strace.c */
 extern char *out_syscall_name;
+/** Syscall used as accept syscall to indicate when should a clinet connect to it */
+extern char *accept_syscall;
+extern char *record_file;
+extern pid_t fuzzer_pid;
+extern bool after_accept;  // should we only fuzz syscall after accept
+extern bool accept_called;
 
 extern const struct xlat addrfams[];
 
@@ -381,6 +387,7 @@ extern const struct xlat whence_codes[];
 #define IOCTL_NUMBER_STOP_LOOKUP 010
 
 #define indirect_ipccall(tcp) (tcp->s_ent->sys_flags & TRACE_INDIRECT_SUBCALL)
+
 
 enum sock_proto {
 	SOCK_PROTO_UNKNOWN,
@@ -1532,6 +1539,28 @@ scno_is_valid(kernel_ulong_t scno)
 
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
 #define INV_FUNC(syscall_name) void INV_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
+
+#define INV_FUNC_RET_ONLY(syscall_name)\
+    static int *ibuf = NULL;\
+    static int vcount;\
+    static int num_ret = 1;\
+    if (tcp->flags & TCB_INV_TRACE){\
+    }\
+    else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){\
+        if (ibuf == NULL){\
+            vcount = read_fuzz_file(FUZZ_FILE(syscall_name), &ibuf, num_ret);\
+        }\
+        if (vcount >= 0 && count >= vcount){\
+            kernel_long_t ret = tcp->u_rval;\
+            m_set mlist[1] = {{&ret, sizeof(int), VARIABLE_NORMAL}};\
+            fuzzing_return_value(ibuf, mlist, num_ret);\
+            if (ibuf[0] == 1){\
+                tprintf("\nmodified return: %ld \n", ret);\
+                tcp->ret_modified = 1;\
+            }\
+            tcp->u_rval = ret;\
+        }\
+    }\
 
 #define ENTER_PPT ":::ENTER"
 #define EXIT_PPT ":::EXIT0"
