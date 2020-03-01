@@ -988,7 +988,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
                         fclose(fptr);
                     }
                     // fuzz the syscall
-                    tcp->s_ent->fuzz_func(tcp, count);
+                    tcp->s_ent->fuzz_func(tcp, list_index);
                     if (tcp->ret_modified) { // set return value back
                         arch_set_success(tcp);
                     }
