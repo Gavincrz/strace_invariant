@@ -44,25 +44,21 @@ struct call_counts {
 };
 
 static struct call_counts *countv[SUPPORTED_PERSONALITIES];
-static int *invcountv[SUPPORTED_PERSONALITIES];
 #define counts (countv[current_personality])
-#define invcounts (invcountv[current_personality])
+static int invcounts = 0;
 
 static struct timespec overhead;
 
 int
 count_inv(struct tcb *tcp)
 {
-	if (!invcounts)
-		invcounts = xcalloc(nsyscalls, sizeof(*invcounts));
-	return invcounts[tcp->scno]++;
+	return invcounts++;
 }
+
 int
 get_inv_count(struct tcb *tcp)
 {
-    if (!invcounts)
-        invcounts = xcalloc(nsyscalls, sizeof(*invcounts));
-    return invcounts[tcp->scno];
+    return invcounts;
 }
 
 

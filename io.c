@@ -41,6 +41,11 @@ void print_arg_trace_read_write(struct tcb *tcp){
     printinvvar("count", PRINT_LU, tcp->u_arg[2]);
 }
 
+FUZZ_FUNC(read)
+{
+    FUZZ_FUNC_RET_ONLY(read)
+}
+
 #define NUM_RET_READ 1
 INV_FUNC(read)
 {

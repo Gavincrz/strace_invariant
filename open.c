@@ -123,44 +123,11 @@ void print_arg_trace_open(struct tcb * tcp)
     printinvvar("flags", PRINT_LD, tcp->u_arg[1]);
 }
 
-#define NUM_RET_OPEN 1
-INV_FUNC(open)
+FUZZ_FUNC(open)
 {
-    static int *ibuf = NULL;
-    static int vcount;
-    static int num_ret = NUM_RET_OPEN;
-	if (tcp->flags & TCB_INV_TRACE){
-		if (entering(tcp)) {
-			invprints("\n");
-			invprints(ENTER_HEADER(open));
-			invprintf("%d\n", count);
-            print_arg_trace_open(tcp);
-		} else {
-			invprints("\n");
-			invprints(EXIT_HEADER(open));
-			invprintf("%d\n", count);
-            print_arg_trace_open(tcp);
-			printinvvar("return", PRINT_LD, tcp->u_rval);
-		}
-	}
-	else if(tcp->flags & TCB_INV_TAMPER && !entering(tcp)){
-        if (ibuf == NULL){
-            vcount = read_fuzz_file(FUZZ_FILE(open), &ibuf, num_ret);
-        }
-        if (vcount >= 0 && count >= vcount){
-            kernel_long_t ret = tcp->u_rval;
-            m_set mlist[NUM_RET_OPEN] = {{&ret, sizeof(int), VARIABLE_FD}};
-            fuzzing_return_value(ibuf, mlist, num_ret);
-
-            if (ibuf[0] == 1){
-                tprintf("\nmodified return: %ld \n", ret);
-                tcp->ret_modified = 1;
-            }
-
-			tcp->u_rval = ret;
-        }
-	}
+	FUZZ_FUNC_RET_ONLY(open)
 }
+
 
 static int
 decode_open(struct tcb *tcp, int offset)
@@ -183,6 +150,10 @@ SYS_FUNC(open)
 	return decode_open(tcp, 0);
 }
 
+FUZZ_FUNC(openat)
+{
+	FUZZ_FUNC_RET_ONLY(openat);
+}
 
 #define NUM_RET_OPENAT 1
 INV_FUNC(openat)

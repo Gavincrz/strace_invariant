@@ -8,6 +8,7 @@ typedef struct sysent {
 	int	(*sys_func)();
     int invariant;
     void (*invariant_func)();
+    void (*fuzz_func)();
 	const char *sys_name;
 } struct_sysent;
 

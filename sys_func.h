@@ -1,3 +1,4 @@
+extern FUZZ_FUNC(read);
 extern INV_FUNC(accept);
 extern INV_FUNC(access);
 extern INV_FUNC(clock_gettime);

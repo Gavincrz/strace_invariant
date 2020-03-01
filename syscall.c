@@ -65,8 +65,9 @@
 /* Define these shorthand notations to simplify the syscallent files. */
 #include "sysent_shorthand_defs.h"
 
-#define SEN(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 0, NULL
-#define SEN_TRACE(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 1, INV_FUNC_NAME(inv_ ## syscall_name)
+#define SEN(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 0, NULL, NULL
+#define SEN_TRACE(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 0, SYS_FUNC_NAME(inv_ ## syscall_name), NULL
+#define SEN_FUZZ(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 1, NULL, SYS_FUNC_NAME(fuzz_ ## syscall_name)
 
 const struct_sysent sysent0[] = {
 #include "syscallent.h"
@@ -693,6 +694,8 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 //			unwind_tcb_capture(tcp);
 //	}
 #endif
+
+/*
     if (!after_accept || (after_accept && accept_called)) {
         if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER) {
             if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
@@ -703,7 +706,7 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
             }
         }
 	}
-
+*/
 	printleader(tcp);
 	tprintf("%s(", tcp->s_ent->sys_name);
 	int res = raw(tcp) ? printargs(tcp) : tcp->s_ent->sys_func(tcp);
@@ -968,22 +971,39 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
         if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){
             get_syscall_args(tcp);
             get_syscall_result(tcp);
-            int count = count_inv(tcp);
-            tcp->ret_modified = 0;
 
+			int list_index = -1;
+            // check if syscall in target syscall list
+            for (int i = 0; i < num_fuzz_syscalls; i++) {
+				if (!strcmp(syscall_fuzz_array[i].name, tcp->s_ent->sys_name)){
+					list_index = i;
+					break;
+				}
+            }
+            if (list_index != -1) {
+				int count = count_inv(tcp);
+				if (count >= skip_count) {
+                    tcp->ret_modified = 0;
+                    tcp->s_ent->fuzz_func(tcp, count);
+                    if (tcp->ret_modified) { // set return value back
+                        arch_set_success(tcp);
+                    }
+				}
+            }
+
+            /*
             if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
                 // this is the target system call, update count
                 FILE* fptr = fopen(OUT_COUNT_FILE, "w+");
                 fprintf(fptr, "%d\n", count);
                 fclose(fptr);
-                if (stack_trace_enabled)
-                    unwind_tcb_print(tcp);
             }
 
             tcp->s_ent->invariant_func(tcp, count);
             if (tcp->ret_modified) { // set return value back
                 arch_set_success(tcp);
             }
+            */
         }
     }
 	return 0;

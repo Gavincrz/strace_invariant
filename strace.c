@@ -61,15 +61,19 @@
 #include "xstring.h"
 #include "delay.h"
 
+
 /* In some libc, these aren't declared. Do it ourself: */
 extern char **environ;
 extern int optind;
 extern char *optarg;
 static FILE *invf;
 bool should_tamper = false;
-char *out_syscall_name = NULL;
+int skip_count = 0;
 char *accept_syscall = NULL;
 char *record_file = NULL; // output syscall sequence to it
+char *fuzz_config_fname = NULL; // json file store fuzz configs
+int num_fuzz_syscalls = 0;
+struct syscall_elem * syscall_fuzz_array = NULL;
 pid_t fuzzer_pid = -1;
 bool after_accept = false;
 bool accept_called = false;
@@ -1296,6 +1300,35 @@ ensure_standard_fds_opened(void)
 		close(fd);
 }
 
+
+static void
+parse_fuzz_config(char* buffer, size_t length) {
+    struct json_object *parsed_json;
+    struct json_object *syscalls;
+    struct json_object *syscall;
+
+    parsed_json = json_tokener_parse(buffer);
+    json_object_object_get_ex(parsed_json, "syscalls", &syscalls);
+    num_fuzz_syscalls = json_object_array_length(syscalls);
+
+    error_msg("number of target syscalls: %d", num_fuzz_syscalls);
+
+    syscall_fuzz_array = (struct syscall_elem *)malloc(sizeof(struct syscall_elem)
+            * num_fuzz_syscalls);
+
+	// seed the rand
+	srand((unsigned int)time(NULL));
+
+    for (int i = 0; i < num_fuzz_syscalls; i++) {
+        struct json_object *name;
+        syscall = json_object_array_get_idx(syscalls, i);
+        syscall_fuzz_array[i].object = syscall;
+        json_object_object_get_ex(syscall, "name", &name);
+        syscall_fuzz_array[i].name = json_object_get_string(name);
+        error_msg("syscall %d: %s", i, syscall_fuzz_array[i].name);
+    }
+}
+
 /*
  * Redirect stdin and stdout unless they have been opened earlier
  * by ensure_standard_fds_opened as placeholders.
@@ -1629,7 +1662,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lL:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1646,7 +1679,7 @@ init(int argc, char *argv[])
 			detach_on_execve = 1;
 			break;
 		case 'B':
-			out_syscall_name = optarg;
+			skip_count = string_to_uint(optarg);
 			break;
 		case 'c':
 			if (cflag == CFLAG_BOTH) {
@@ -1707,6 +1740,9 @@ init(int argc, char *argv[])
 			stack_trace_enabled = true;
 			break;
 #endif
+		case 'K':
+		    fuzz_config_fname = optarg;
+		    break;
 		case 'l':
             after_accept = true;
 		    break;
@@ -1815,6 +1851,47 @@ init(int argc, char *argv[])
 	if (record_file != NULL) {
 		remove(record_file);
 	}
+
+	/* parsing the config file name */
+	if (fuzz_config_fname != NULL) {
+        char *buffer = NULL;
+        FILE *fp = fopen(fuzz_config_fname, "r");
+        if (fp != NULL){
+            if (fseek(fp, 0L, SEEK_END) == 0) {
+                /* Get the size of the file. */
+                long bufsize = ftell(fp);
+                if (bufsize == -1) {
+                    error_msg_and_help("Unable get file size: %s", fuzz_config_fname);
+                }
+
+                /* Allocate our buffer to that size. */
+                buffer = malloc(sizeof(char) * (bufsize + 1));
+
+                /* Go back to the start of the file. */
+                if (fseek(fp, 0L, SEEK_SET) != 0) {
+                    error_msg_and_help("Unable to go back to the start");
+                }
+
+                /* Read the entire file into memory. */
+                size_t ret = fread(buffer, sizeof(char), bufsize, fp);
+                if (ferror(fp) != 0 ) {
+                    error_msg_and_help("Error reading file");
+                } else {
+                    buffer[ret] = '\0'; /* Just to be safe. */
+                }
+
+                parse_fuzz_config(buffer, ret);
+                free(buffer);
+            }
+            fclose(fp);
+        }
+        else {
+            error_msg_and_help("Unable to open syscall config file: %s", fuzz_config_fname);
+        }
+    }
+
+
+
 
 	if (followfork >= 2 && cflag) {
 		error_msg_and_help("(-c or -C) and -ff are mutually exclusive");

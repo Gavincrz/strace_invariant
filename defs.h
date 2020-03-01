@@ -62,6 +62,7 @@
 #include "string_to_uint.h"
 #include "sysent.h"
 #include "xmalloc.h"
+#include <json-c/json.h>
 
 #ifndef HAVE_STRERROR
 const char *strerror(int);
@@ -176,6 +177,11 @@ typedef struct ioctlent {
 	const char *symbol;
 	unsigned int code;
 } struct_ioctlent;
+
+struct syscall_elem {
+    const char* name;
+    struct json_object * object;
+};
 
 #define INJECT_F_SIGNAL		0x01
 #define INJECT_F_ERROR		0x02
@@ -310,8 +316,11 @@ struct tcb {
 
 #include "xlat.h"
 
-/** Output system call name, defined in strace.c */
-extern char *out_syscall_name;
+/** used for fuzzing defined in strace.c */
+extern int skip_count;
+extern struct syscall_elem * syscall_fuzz_array;
+extern int num_fuzz_syscalls;
+
 /** Syscall used as accept syscall to indicate when should a clinet connect to it */
 extern char *accept_syscall;
 extern char *record_file;
@@ -1535,10 +1544,11 @@ scno_is_valid(kernel_ulong_t scno)
 #define MPERS_FUNC_NAME(name) MPERS_FUNC_NAME_(MPERS_PREFIX, name)
 
 #define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
-#define INV_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
 
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
-#define INV_FUNC(syscall_name) void INV_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
+#define INV_FUNC(syscall_name) void SYS_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
+#define FUZZ_FUNC(syscall_name) void SYS_FUNC_NAME(fuzz_ ## syscall_name)(struct tcb *tcp, int index)
+
 
 #define INV_FUNC_RET_ONLY(syscall_name)\
     static int *ibuf = NULL;\
@@ -1561,6 +1571,19 @@ scno_is_valid(kernel_ulong_t scno)
             tcp->u_rval = ret;\
         }\
     }\
+
+#define FUZZ_FUNC_RET_ONLY(syscall_name)\
+    struct json_object *obj = syscall_fuzz_array[index].object;\
+    struct json_object *ret_array;\
+    struct json_object *ret_obj;\
+    json_object_object_get_ex(obj, "ret", &ret_array);\
+    int n_ret = json_object_array_length(ret_array);\
+    kernel_long_t ret = tcp->u_rval;\
+    int rand_index = rand() % n_ret;\
+    ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+    tcp->u_rval = json_object_get_int(ret_obj);\
+    tprintf("\nmodified return: %ld -> %ld \n", ret,  tcp->u_rval);\
+    tcp->ret_modified = 1;\
 
 #define ENTER_PPT ":::ENTER"
 #define EXIT_PPT ":::EXIT0"

@@ -15,6 +15,16 @@ The user discussion and development of strace take place on [the strace mailing 
 
 The GIT repository of strace is available at [GitHub](https://github.com/strace/strace/) and [GitLab](https://gitlab.com/strace/strace/).
 
+
+
+install For rscfuzzer
+---------------------
+```
+apt install libjson-c-dev
+./configure LDFLAGS='-L/lib/x86_64-linux-gnu/ -ljson-c'
+make
+```
+
 The latest binary strace packages are available in many repositories, including
 [OBS](https://build.opensuse.org/package/show/home:ldv_alt/strace/),
 [Fedora rawhide](https://apps.fedoraproject.org/packages/strace), and

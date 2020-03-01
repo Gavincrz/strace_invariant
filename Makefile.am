@@ -938,6 +938,8 @@ sys_func_h_sources = $(filter-out $(strace_SOURCES_check),$(strace_SOURCES_c))
 sys_func.h: $(patsubst %,$(srcdir)/%,$(sys_func_h_sources))
 	for f in $^; do \
 		sed -n 's/^SYS_FUNC(.*/extern &;/p' $$f; \
+		sed -n 's/^INV_FUNC(.*/extern &;/p' $$f; \
+		sed -n 's/^FUZZ_FUNC(.*/extern &;/p' $$f; \
 	done | sort -u > $@
 
 syscallent_names = subcall.h syscallent.h syscallent1.h \
