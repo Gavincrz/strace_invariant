@@ -26,6 +26,7 @@ arch_set_success(struct tcb *tcp)
 	return upoke(tcp, 8 * RAX, rval);
 }
 
+/*
 static int
 arch_set_all_reg(struct tcb *tcp)
 {
@@ -38,3 +39,4 @@ arch_set_all_reg(struct tcb *tcp)
     x86_64_regs.r9 = tcp->u_arg[5];
 	return  ptrace(PTRACE_SETREGS, tcp->pid, NULL, &x86_64_regs);
 }
+*/

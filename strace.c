@@ -1849,7 +1849,18 @@ init(int argc, char *argv[])
 	}
 
 	if (record_file != NULL) {
+		// remove and create a new record file
 		remove(record_file);
+        int fd = open(record_file, O_CREAT, 0666);
+        if (fd == -1) {
+            error_msg_and_help("unable to create record_file");
+        }
+        // change owner to nobody
+        int ret = fchmod(fd, S_IROTH|S_IWOTH);
+        if (ret == -1) {
+            error_msg_and_help("unable to change mode of record_file");
+        }
+        close(fd);
 	}
 
 	/* parsing the config file name */

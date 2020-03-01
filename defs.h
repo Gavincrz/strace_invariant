@@ -1582,8 +1582,11 @@ scno_is_valid(kernel_ulong_t scno)
     int rand_index = rand() % n_ret;\
     ret_obj = json_object_array_get_idx(ret_array, rand_index);\
     tcp->u_rval = json_object_get_int(ret_obj);\
-    tprintf("\nmodified return: %ld -> %ld \n", ret,  tcp->u_rval);\
     tcp->ret_modified = 1;\
+    tprintf("modified return: %ld -> %ld \n", ret,  tcp->u_rval);\
+    FILE* fptr = fopen(record_file, "a+");\
+    fprintf(fptr, "  return: %ld -> %ld \n", ret,  tcp->u_rval);\
+    fclose(fptr);\
 
 #define ENTER_PPT ":::ENTER"
 #define EXIT_PPT ":::EXIT0"

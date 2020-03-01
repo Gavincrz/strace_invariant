@@ -1,3 +1,5 @@
+extern FUZZ_FUNC(open);
+extern FUZZ_FUNC(openat);
 extern FUZZ_FUNC(read);
 extern INV_FUNC(accept);
 extern INV_FUNC(access);
@@ -21,7 +23,6 @@ extern INV_FUNC(getsockopt);
 extern INV_FUNC(getuid);
 extern INV_FUNC(lseek);
 extern INV_FUNC(newfstatat);
-extern INV_FUNC(open);
 extern INV_FUNC(openat);
 extern INV_FUNC(poll);
 extern INV_FUNC(pread);

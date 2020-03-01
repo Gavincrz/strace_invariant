@@ -490,7 +490,7 @@ static int arch_get_syscall_args(struct tcb *);
 static void arch_get_error(struct tcb *, bool);
 static int arch_set_error(struct tcb *);
 static int arch_set_success(struct tcb *);
-static int arch_set_all_reg(struct tcb *tcp);
+//static int arch_set_all_reg(struct tcb *tcp);
 struct inject_opts *inject_vec[SUPPORTED_PERSONALITIES];
 
 static struct inject_opts *
@@ -770,13 +770,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	if (syscall_tampered(tcp) || inject_delay_exit(tcp))
 		tamper_with_syscall_exiting(tcp);
 
-	if (record_file != NULL
-	    && (!after_accept || (after_accept && accept_called))) {
-	    // append the syscall to record file
-        FILE* fptr = fopen(record_file, "a+");
-        fprintf(fptr, "%s\n", tcp->s_ent->sys_name);
-        fclose(fptr);
-	}
+
 	if (cflag) {
 		count_syscall(tcp, ts);
 		if (cflag == CFLAG_ONLY_STATS) {
@@ -984,6 +978,16 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 				int count = count_inv(tcp);
 				if (count >= skip_count) {
                     tcp->ret_modified = 0;
+
+                    // record the syscall fuzzed
+                    if (record_file != NULL)
+                    {
+                        // append the syscall to record file
+                        FILE* fptr = fopen(record_file, "a+");
+                        fprintf(fptr, "count:%d syscall: %s\n", count, tcp->s_ent->sys_name);
+                        fclose(fptr);
+                    }
+                    // fuzz the syscall
                     tcp->s_ent->fuzz_func(tcp, count);
                     if (tcp->ret_modified) { // set return value back
                         arch_set_success(tcp);
