@@ -1585,7 +1585,7 @@ scno_is_valid(kernel_ulong_t scno)
     struct json_object *obj = syscall_fuzz_array[index].object;\
     struct json_object *ret_array;\
     struct json_object *ret_obj;\
-    int n_ret;\
+    int n_ret = 0;\
     if (tcp->flags & TCB_FUZZ_VALID) {\
         if (json_object_object_get_ex(obj, "ret_v", &ret_array)){\
            n_ret = json_object_array_length(ret_array);\
@@ -1596,11 +1596,26 @@ scno_is_valid(kernel_ulong_t scno)
         else tcp->u_rval = -(rand() % 132);\
     }\
     else {\
-        json_object_object_get_ex(obj, "ret_i", &ret_array);\
-        n_ret = json_object_array_length(ret_array);\
-        int rand_index = rand() % n_ret;\
-        ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-        tcp->u_rval = json_object_get_int(ret_obj);\
+        if (json_object_object_get_ex(obj, "ret_i", &ret_array))\
+            n_ret = json_object_array_length(ret_array);\
+        int rand_index = rand() % (n_ret + 3);\
+        if (rand_index < n_ret){\
+            ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+            tcp->u_rval = json_object_get_int(ret_obj);\
+        }\
+        else if(rand_index == n_ret) {\
+            memset(&(tcp->u_rval), -1, sizeof(int));\
+            ((char*)&(tcp->u_rval))[sizeof(int)-1] = 0x7f;\
+        }\
+        else if(rand_index == n_ret + 1) {\
+            memset(&(tcp->u_rval), 0, sizeof(int));\
+            ((char*)&(tcp->u_rval))[sizeof(int)-1] = (char)0x80;\
+        }\
+        else if(rand_index == n_ret + 2) {\
+           if (read(rand_fd, &(tcp->u_rval), sizeof(int)) < 0) {\
+                tprintf("read random file failed");\
+            }\
+        }\
     }\
     tcp->ret_modified = 1;\
     tprintf("modified return: %ld -> %ld \n", ret,  tcp->u_rval);\
@@ -1644,7 +1659,7 @@ scno_is_valid(kernel_ulong_t scno)
         if (json_object_object_get_ex(obj, target_name, &ret_array)){\
             num_input = json_object_array_length(ret_array);\
         }\
-        max_index = num_input + 2;\
+        max_index = num_input + 3;\
         int rand_index = rand() % max_index;\
         if (rand_index < num_input) {\
             ret_obj = json_object_array_get_idx(ret_array, rand_index);\
