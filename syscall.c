@@ -43,6 +43,8 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 /* for struct iovec */
 #include <sys/uio.h>

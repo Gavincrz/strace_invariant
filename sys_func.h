@@ -1,6 +1,11 @@
+extern FUZZ_FUNC(close);
+extern FUZZ_FUNC(fstat);
+extern FUZZ_FUNC(lstat);
 extern FUZZ_FUNC(open);
 extern FUZZ_FUNC(openat);
 extern FUZZ_FUNC(read);
+extern FUZZ_FUNC(stat);
+extern FUZZ_FUNC(write);
 extern INV_FUNC(accept);
 extern INV_FUNC(access);
 extern INV_FUNC(clock_gettime);

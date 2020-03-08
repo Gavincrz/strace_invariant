@@ -63,6 +63,12 @@ INV_FUNC(geteuid)
     INV_FUNC_RET_ONLY(geteuid)
 }
 
+FUZZ_FUNC(close)
+{
+    FUZZ_FUNC_RET_ONLY(close)
+}
+
+
 #define NUM_RET_CLOSE 1
 INV_FUNC(close)
 {

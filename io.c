@@ -104,6 +104,11 @@ SYS_FUNC(read)
 	return 0;
 }
 
+FUZZ_FUNC(write)
+{
+    FUZZ_FUNC_RET_ONLY(write)
+}
+
 #define NUM_RET_WRITE 1
 INV_FUNC(write)
 {

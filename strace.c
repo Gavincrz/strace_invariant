@@ -68,6 +68,7 @@ extern int optind;
 extern char *optarg;
 static FILE *invf;
 bool should_tamper = false;
+bool fuzz_valid = false;
 int skip_count = 0;
 char *accept_syscall = NULL;
 char *record_file = NULL; // output syscall sequence to it
@@ -77,6 +78,7 @@ struct syscall_elem * syscall_fuzz_array = NULL;
 pid_t fuzzer_pid = -1;
 bool after_accept = false;
 bool accept_called = false;
+int rand_fd = -1;
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -1662,7 +1664,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1748,6 +1750,9 @@ init(int argc, char *argv[])
 		    break;
 		case 'L': // record syscall get called
             record_file = optarg;
+            break;
+        case 'm': // fuzz with valid value?
+            fuzz_valid = true;
             break;
 		case 'o':
 			outfname = optarg;
@@ -1862,6 +1867,13 @@ init(int argc, char *argv[])
         }
         close(fd);
 	}
+
+    if (rand_fd == -1) {
+        rand_fd = open("/dev/urandom", O_RDONLY);
+        if (rand_fd < 0) {
+            perror_msg_and_die("unable to open random file");
+        }
+    }
 
 	/* parsing the config file name */
 	if (fuzz_config_fname != NULL) {
@@ -2364,6 +2376,10 @@ startup_tcb(struct tcb *tcp)
 	}
 	else if(should_tamper){
 		tcp->flags |= TCB_INV_TAMPER;
+	}
+
+	if (fuzz_valid) {
+	    tcp->flags |= TCB_FUZZ_VALID;
 	}
 }
 

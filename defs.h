@@ -287,6 +287,7 @@ struct tcb {
 
 #define TCB_INV_TRACE 0X8000 /* Indicate wether we should output dtrace */
 #define TCB_INV_TAMPER 0x10000 /* Indicate wether we should tamper some return fields */
+#define TCB_FUZZ_VALID 0x20000 /* Indicate wether we should fuzz syscall with valid numbers */
 
 /* qualifier flags */
 #define QUAL_TRACE	0x001	/* this system call should be traced */
@@ -327,6 +328,7 @@ extern char *record_file;
 extern pid_t fuzzer_pid;
 extern bool after_accept;  // should we only fuzz syscall after accept
 extern bool accept_called;
+extern int rand_fd;
 
 extern const struct xlat addrfams[];
 
@@ -444,6 +446,12 @@ typedef struct {
     size_t size;
     mvar_t type;
 } m_set;
+
+typedef struct {
+    void* addr;
+    size_t size;
+    const char* name;
+} r_set;
 
 typedef enum {
 	CFLAG_NONE = 0,
@@ -1573,20 +1581,99 @@ scno_is_valid(kernel_ulong_t scno)
     }\
 
 #define FUZZ_FUNC_RET_ONLY(syscall_name)\
+    kernel_long_t ret = tcp->u_rval;\
     struct json_object *obj = syscall_fuzz_array[index].object;\
     struct json_object *ret_array;\
     struct json_object *ret_obj;\
-    json_object_object_get_ex(obj, "ret", &ret_array);\
-    int n_ret = json_object_array_length(ret_array);\
-    kernel_long_t ret = tcp->u_rval;\
-    int rand_index = rand() % n_ret;\
-    ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-    tcp->u_rval = json_object_get_int(ret_obj);\
+    int n_ret;\
+    if (tcp->flags & TCB_FUZZ_VALID) {\
+        if (json_object_object_get_ex(obj, "ret_v", &ret_array)){\
+           n_ret = json_object_array_length(ret_array);\
+           int rand_index = rand() % n_ret;\
+           ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+           tcp->u_rval = json_object_get_int(ret_obj);\
+        }\
+        else tcp->u_rval = -(rand() % 132);\
+    }\
+    else {\
+        json_object_object_get_ex(obj, "ret_i", &ret_array);\
+        n_ret = json_object_array_length(ret_array);\
+        int rand_index = rand() % n_ret;\
+        ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+        tcp->u_rval = json_object_get_int(ret_obj);\
+    }\
     tcp->ret_modified = 1;\
     tprintf("modified return: %ld -> %ld \n", ret,  tcp->u_rval);\
     FILE* fptr = fopen(record_file, "a+");\
     fprintf(fptr, "  return: %ld -> %ld \n", ret,  tcp->u_rval);\
     fclose(fptr);\
+
+#define COMMON_FUZZ\
+    r_set target = rlist[ret_index];\
+    char target_name[100];\
+    strcpy(target_name, target.name);\
+    int num_input = 0;\
+    int max_index = 0;\
+    struct json_object *obj = syscall_fuzz_array[index].object;\
+    struct json_object *ret_array;\
+    struct json_object *ret_obj;\
+    FILE* fptr = fopen(record_file, "a+");\
+    tprintf("\nmodified %s: ", target_name);\
+    fprintf(fptr, "%s: ", target_name);\
+    for (size_t i = 0; i < target.size; i++) {\
+        tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+    }\
+    tprintf(" -> ");\
+    fprintf(fptr, " -> ");\
+    if (tcp->flags & TCB_FUZZ_VALID) {\
+        strcat(target_name, "_v");\
+        if (json_object_object_get_ex(obj, target_name, &ret_array)){\
+            num_input = json_object_array_length(ret_array);\
+        }\
+        max_index = num_input;\
+        if (max_index > 0) {\
+            int rand_index = rand() % max_index;\
+            ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+            int value = json_object_get_int(ret_obj);\
+            memcpy(target.addr, &value, target.size);\
+        }\
+    }\
+    else {\
+        strcat(target_name, "_i");\
+        if (json_object_object_get_ex(obj, target_name, &ret_array)){\
+            num_input = json_object_array_length(ret_array);\
+        }\
+        max_index = num_input + 2;\
+        int rand_index = rand() % max_index;\
+        if (rand_index < num_input) {\
+            ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+            int value = json_object_get_int(ret_obj);\
+            memcpy(target.addr, &value, target.size);\
+        }\
+        else if (rand_index == num_input) {\
+            memset(target.addr, -1, target.size);\
+            ((char*)target.addr)[target.size-1] = 0x7f;\
+        }\
+        else if (rand_index == num_input + 1) {\
+            memset(target.addr, 0x00, target.size);\
+            ((char*)target.addr)[target.size-1] = (char)0x80;\
+        }\
+        else if (rand_index == num_input + 2) {\
+            if (read(rand_fd, target.addr, target.size) < 0) {\
+                tprintf("read random file failed");\
+            }\
+        }\
+    }\
+    for (size_t i = 0; i < target.size; i++) {\
+        tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+    }\
+    tprintf("\n");\
+    fprintf(fptr, "\n");\
+    fclose(fptr);\
+
+#define FUZZ_SET(field, name) {&(field), sizeof(field), name}
 
 #define ENTER_PPT ":::ENTER"
 #define EXIT_PPT ":::EXIT0"
