@@ -79,6 +79,7 @@ pid_t fuzzer_pid = -1;
 bool after_accept = false;
 bool accept_called = false;
 int rand_fd = -1;
+bool cov_test = false;
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -1664,7 +1665,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1753,6 +1754,9 @@ init(int argc, char *argv[])
             break;
         case 'm': // fuzz with valid value?
             fuzz_valid = true;
+            break;
+        case 'M': // fuzz with valid value?
+            cov_test = true;
             break;
 		case 'o':
 			outfname = optarg;

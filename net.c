@@ -451,11 +451,11 @@ INV_FUNC(recvfrom)
 		}
 		tprintf("\n count = %d, vcount = %d", count, vcount);
 		if (vcount >= 0 && count >= vcount){
-			void *buf = malloc(ulen);
 			// read the original data
 			kernel_long_t ret = tcp->u_rval;
 
 			ulen = get_tcb_priv_ulong(tcp);
+			void *buf = malloc(ulen);
 
 			tfetch_mem(tcp, tcp->u_arg[4], ulen, buf);
 			tfetch_mem(tcp, tcp->u_arg[5], sizeof(socklen_t), &rlen);

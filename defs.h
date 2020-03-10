@@ -329,6 +329,7 @@ extern pid_t fuzzer_pid;
 extern bool after_accept;  // should we only fuzz syscall after accept
 extern bool accept_called;
 extern int rand_fd;
+extern bool cov_test;
 
 extern const struct xlat addrfams[];
 
@@ -1589,9 +1590,11 @@ scno_is_valid(kernel_ulong_t scno)
     if (tcp->flags & TCB_FUZZ_VALID) {\
         if (json_object_object_get_ex(obj, "ret_v", &ret_array)){\
            n_ret = json_object_array_length(ret_array);\
-           int rand_index = rand() % n_ret;\
-           ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-           tcp->u_rval = json_object_get_int(ret_obj);\
+           if (n_ret > 0) {\
+               int rand_index = rand() % n_ret;\
+               ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+               tcp->u_rval = json_object_get_int(ret_obj);\
+           }\
         }\
         else tcp->u_rval = -(rand() % 132);\
     }\

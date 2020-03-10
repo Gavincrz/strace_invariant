@@ -71,6 +71,9 @@
 #define SEN_TRACE(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 0, SYS_FUNC_NAME(inv_ ## syscall_name), NULL
 #define SEN_FUZZ(syscall_name) SEN_ ## syscall_name, SYS_FUNC_NAME(sys_ ## syscall_name), 1, NULL, SYS_FUNC_NAME(fuzz_ ## syscall_name)
 
+
+#define MAGIC_FD_NULL -10086
+
 const struct_sysent sysent0[] = {
 #include "syscallent.h"
 };
@@ -766,6 +769,70 @@ syscall_exiting_decode(struct tcb *tcp, struct timespec *pts)
 	return get_syscall_result(tcp);
 }
 
+#define MAX_COV_LIST 100
+kernel_long_t cov_fd_list[MAX_COV_LIST]; // assumes only 100 cov fd can be openend at one time
+bool cov_list_init = false;
+
+
+int check_cov_fd_exist(kernel_long_t fd)
+{
+    for (int i= 0; i < MAX_COV_LIST; i++) {
+        if (cov_fd_list[i] == fd) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool insert_cov_fd(kernel_long_t fd)
+{
+    int index = check_cov_fd_exist(fd);
+    if (index != -1) {
+        tprintf("\nwarning: wield, cov fd already in list in index: %d!\n", index);
+        return false;
+    }
+    for (int i= 0; i < MAX_COV_LIST; i++){
+        if (cov_fd_list[i] == MAGIC_FD_NULL){
+            cov_fd_list[i] = fd;
+            tprintf("\ninsert cov_fd: %ld to index: %d\n", fd, i);
+            return true;
+        }
+    }
+    tprintf("\nerror: no empty position for cov fd\n");
+    return false;
+}
+
+void remove_cov_fd(int index)
+{
+    cov_fd_list[index] = MAGIC_FD_NULL;
+}
+
+bool handle_cov_open(struct tcb *tcp)
+{
+    // initialize the cov_list once
+    if (!cov_list_init) {
+        for (int i = 0; i < 100; i++) {
+            cov_fd_list[i] = MAGIC_FD_NULL;
+        }
+        cov_list_init = true;
+    }
+    // get path of openat
+    kernel_ulong_t addr = tcp->u_arg[1];
+    if (addr) { // make sure path is not null
+        char path[PATH_MAX];
+        int nul_seen = umovestr(tcp, addr, PATH_MAX, path);
+        if (nul_seen > 0) { // we get the path, check if path end with .gcda
+            char *dot = strrchr(path, '.');
+            if (dot && !strcmp(dot, ".gcda") && tcp->u_rval != -1) { // this path is cov path
+                kernel_long_t fd = tcp->u_rval;
+                insert_cov_fd(fd);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 int
 syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 {
@@ -968,13 +1035,41 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
             get_syscall_args(tcp);
             get_syscall_result(tcp);
 
+            bool should_skip_cov = false;
+            // check if we are running cov_test
+            // if so, we should not touch getpid(), openat(gcda)
+            // and following read(0), lseek(8), write(1), close(3), fcntl(72) on that fd
+            if (cov_test) {
+                if (tcp->scno == 39) // getpid
+                    should_skip_cov = true;
+                if (tcp->scno == 257) { // openat
+                    should_skip_cov = handle_cov_open(tcp);
+                }
+                if (tcp->scno == 72 || tcp->scno == 0
+                || tcp->scno == 8 || tcp->scno == 1 || tcp->scno == 3) {
+                    kernel_long_t fd = tcp->u_arg[0];
+                    int index = check_cov_fd_exist(fd);
+                    if (index != -1) {
+                        tprintf("skip syscall on cov fd: %ld, index: %d\n", fd, index);
+                        should_skip_cov = true;
+                        if (tcp->scno == 3) { // close
+                            remove_cov_fd(index);
+                            tprintf("remove cov fd from list\n");
+                        }
+                    }
+                }
+            }
+
 			int list_index = -1;
-            // check if syscall in target syscall list
-            for (int i = 0; i < num_fuzz_syscalls; i++) {
-				if (!strcmp(syscall_fuzz_array[i].name, tcp->s_ent->sys_name)){
-					list_index = i;
-					break;
-				}
+
+            if (!should_skip_cov) {
+                // check if syscall in target syscall list
+                for (int i = 0; i < num_fuzz_syscalls; i++) {
+                    if (!strcmp(syscall_fuzz_array[i].name, tcp->s_ent->sys_name)){
+                        list_index = i;
+                        break;
+                    }
+                }
             }
             if (list_index != -1) {
 				int count = count_inv(tcp);

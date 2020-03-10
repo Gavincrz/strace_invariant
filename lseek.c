@@ -46,6 +46,11 @@
  */
 
 
+FUZZ_FUNC(lseek)
+{
+	FUZZ_FUNC_RET_ONLY(lseek)
+}
+
 INV_FUNC(lseek)
 {
 

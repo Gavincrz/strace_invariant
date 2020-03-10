@@ -1,5 +1,7 @@
 extern FUZZ_FUNC(close);
 extern FUZZ_FUNC(fstat);
+extern FUZZ_FUNC(getpid);
+extern FUZZ_FUNC(lseek);
 extern FUZZ_FUNC(lstat);
 extern FUZZ_FUNC(open);
 extern FUZZ_FUNC(openat);

@@ -38,6 +38,11 @@ INV_FUNC(getpid)
     INV_FUNC_RET_ONLY(getpid)
 }
 
+FUZZ_FUNC(getpid)
+{
+    FUZZ_FUNC_RET_ONLY(getpid)
+}
+
 INV_FUNC(getppid)
 {
     INV_FUNC_RET_ONLY(getppid)
