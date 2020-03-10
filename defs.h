@@ -452,6 +452,8 @@ typedef struct {
     void* addr;
     size_t size;
     const char* name;
+    int num_elem;
+    size_t distance;
 } r_set;
 
 typedef enum {
@@ -1691,7 +1693,8 @@ scno_is_valid(kernel_ulong_t scno)
     fprintf(fptr, "\n");\
     fclose(fptr);\
 
-#define FUZZ_SET(field, name) {&(field), sizeof(field), name}
+#define FUZZ_SET(field, name) {&(field), sizeof(field), name, 0, 0}
+#define FUZZ_SET_ARRAY(field, name, elem, dist) {&(field), sizeof(field), name, elem, dist}
 
 #define ENTER_PPT ":::ENTER"
 #define EXIT_PPT ":::EXIT0"

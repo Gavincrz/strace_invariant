@@ -1,4 +1,5 @@
 extern FUZZ_FUNC(close);
+extern FUZZ_FUNC(epoll_wait);
 extern FUZZ_FUNC(fstat);
 extern FUZZ_FUNC(getpid);
 extern FUZZ_FUNC(lseek);

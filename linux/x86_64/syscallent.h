@@ -230,7 +230,7 @@
 [229] = { 2,	0,		SEN(clock_getres),		"clock_getres"		},
 [230] = { 4,	0,		SEN(clock_nanosleep),		"clock_nanosleep"	},
 [231] = { 1,	TP|SE,		SEN(exit),			"exit_group"		},
-[232] = { 4,	TD,		SEN_TRACE(epoll_wait),		"epoll_wait"		},
+[232] = { 4,	TD,		SEN_FUZZ(epoll_wait),		"epoll_wait"		},
 [233] = { 4,	TD,		SEN(epoll_ctl),			"epoll_ctl"		},
 [234] = { 3,	TS,		SEN(tgkill),			"tgkill"		},
 [235] = { 2,	TF,		SEN(utimes),			"utimes"		},

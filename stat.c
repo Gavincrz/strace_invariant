@@ -52,7 +52,7 @@ FUZZ_FUNC(stat)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_STAT] = {{&ret, sizeof(int), "ret"},
+    r_set rlist[NUM_RET_STAT] = {{&ret, sizeof(int), "ret", 0, 0},
                                  FUZZ_SET(fetch_stat.st_dev, "st_dev"),
                                  FUZZ_SET(fetch_stat.st_ino, "st_ino"),
                                  FUZZ_SET(fetch_stat.st_mode, "st_mode"),
@@ -109,7 +109,6 @@ FUZZ_FUNC(stat)
         max_index = num_input + 3; // max or random
         int rand_index = rand() % max_index;
         if (rand_index < num_input) { // use value in pre defined set
-            int rand_index = rand() % max_index;
             ret_obj = json_object_array_get_idx(ret_array, rand_index);
             int value = json_object_get_int(ret_obj);
             memcpy(target.addr, &value, target.size);
@@ -209,7 +208,7 @@ FUZZ_FUNC(lstat)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret"},
+    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
                                  FUZZ_SET(fetch_stat.st_dev, "st_dev"),
                                  FUZZ_SET(fetch_stat.st_ino, "st_ino"),
                                  FUZZ_SET(fetch_stat.st_mode, "st_mode"),
@@ -249,7 +248,7 @@ FUZZ_FUNC(fstat)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_FSTAT] = {{&ret, sizeof(int), "ret"},
+    r_set rlist[NUM_RET_FSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
                                  FUZZ_SET(fetch_stat.st_dev, "st_dev"),
                                  FUZZ_SET(fetch_stat.st_ino, "st_ino"),
                                  FUZZ_SET(fetch_stat.st_mode, "st_mode"),

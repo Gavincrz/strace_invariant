@@ -175,6 +175,150 @@ typedef struct _fdnode {
     int events;
 } fdnode;
 
+#define NUM_RET_EPOLL_WAIT 3
+FUZZ_FUNC(epoll_wait)
+{
+
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_EPOLL_WAIT;
+
+    // read the original data
+    kernel_long_t maxevents = tcp->u_arg[2];
+    kernel_long_t ret = tcp->u_rval;
+
+    unsigned int len = sizeof(struct epoll_event) * maxevents;
+    struct epoll_event *events = malloc(len);
+    tfetch_mem(tcp, tcp->u_arg[1], len, events);
+
+    r_set rlist[NUM_RET_EPOLL_WAIT] = {{&ret, sizeof(int), "ret", 0, 0},
+                                       FUZZ_SET_ARRAY(events[0].events, "events",
+                                               (int)maxevents, sizeof(struct epoll_event)),
+                                       FUZZ_SET_ARRAY(events[0].data.fd, "data",
+                                               (int)maxevents, sizeof(struct epoll_event))};
+
+    struct json_object *obj = syscall_fuzz_array[index].object;
+    struct json_object *ret_array;
+    struct json_object *ret_obj;
+
+    r_set target = rlist[ret_index];
+    char target_name[100];
+    strcpy(target_name, target.name);
+    int num_input = 0; // number of input specified in json file for target
+
+
+    // print message
+    FILE* fptr = fopen(record_file, "a+");
+
+    // check if fuzz valid or invalid
+    if (tcp->flags & TCB_FUZZ_VALID) {
+        strcat(target_name, "_v");
+        if (json_object_object_get_ex(obj, target_name, &ret_array)){
+            num_input = json_object_array_length(ret_array);
+        }
+        if (num_input > 0) {
+            int rand_index = rand() % num_input;
+            ret_obj = json_object_array_get_idx(ret_array, rand_index);
+            int value = json_object_get_int(ret_obj);
+
+            // if this is an array target, modify all element with same value
+            if (target.num_elem > 0 && target.distance > 0) {
+                char* target_ptr = target.addr;
+                for (int i = 0; i < target.num_elem; i++) {
+                    memcpy(target_ptr, &value, target.size);
+                    target_ptr = target_ptr + target.distance;
+                }
+            }
+            else {
+                memcpy(target.addr, &value, target.size);
+            }
+        }
+    }
+    else {
+        strcat(target_name, "_i");
+        if (json_object_object_get_ex(obj, target_name, &ret_array)){
+            num_input = json_object_array_length(ret_array);
+        }
+        int rand_index = rand() % (num_input + 3);
+        if (rand_index < num_input) { // use value in pre defined set
+            ret_obj = json_object_array_get_idx(ret_array, rand_index);
+            int value = json_object_get_int(ret_obj);
+
+            // if this is an array target, modify all element with same value
+            if (target.num_elem > 0 && target.distance > 0) {
+                char* target_ptr = target.addr;
+                for (int i = 0; i < target.num_elem; i++) {
+                    memcpy(target_ptr, &value, target.size);
+                    target_ptr = target_ptr + target.distance;
+                }
+            }
+            else {
+                memcpy(target.addr, &value, target.size);
+            }
+        }
+        else if (rand_index == num_input) { // max value
+            // if this is an array target, modify all element with same value
+            if (target.num_elem > 0 && target.distance > 0) {
+                char* target_ptr = target.addr;
+                for (int i = 0; i < target.num_elem; i++) {
+                    memset(target_ptr, -1, target.size);
+                    target_ptr[target.size-1] = 0x7f;
+                    target_ptr = target_ptr + target.distance;
+                }
+            }
+            else {
+                memset(target.addr, -1, target.size);
+                ((char*)target.addr)[target.size-1] = 0x7f;
+            }
+        }
+        else if (rand_index == num_input + 1) { // min value
+            // if this is an array target, modify all element with same value
+            if (target.num_elem > 0 && target.distance > 0) {
+                char* target_ptr = target.addr;
+                for (int i = 0; i < target.num_elem; i++) {
+                    memset(target_ptr, 0x00, target.size);
+                    target_ptr[target.size-1] = (char)0x80;
+                    target_ptr = target_ptr + target.distance;
+                }
+            }
+            else {
+                memset(target.addr, 0x00, target.size);
+                ((char*)target.addr)[target.size-1] = (char)0x80;
+            }
+        }
+        else if (rand_index == num_input + 2) { // rand value
+            if (target.num_elem > 0 && target.distance > 0) {
+                char* target_ptr = target.addr;
+                for (int i = 0; i < target.num_elem; i++) {
+                    if (read(rand_fd, target_ptr, target.size) < 0) {
+                        tprintf("read random file failed");
+                    }
+                    target_ptr = target_ptr + target.distance;
+                }
+            }
+            else {
+                if (read(rand_fd, target.addr, target.size) < 0) {
+                    tprintf("read random file failed");
+                }
+            }
+        }
+    }
+
+    tprintf("modify %s\n", target_name);
+    fprintf(fptr, "modify %s \n", target_name);
+    fclose(fptr);
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, events, tcp->u_arg[1], len);
+    free(events);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
+#undef NUM_RET_EPOLL_WAIT
 #define NUM_RET_EPOLL_WAIT 2
 INV_FUNC(epoll_wait)
 {

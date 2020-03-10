@@ -823,9 +823,11 @@ bool handle_cov_open(struct tcb *tcp)
         int nul_seen = umovestr(tcp, addr, PATH_MAX, path);
         if (nul_seen > 0) { // we get the path, check if path end with .gcda
             char *dot = strrchr(path, '.');
-            if (dot && !strcmp(dot, ".gcda") && tcp->u_rval != -1) { // this path is cov path
-                kernel_long_t fd = tcp->u_rval;
-                insert_cov_fd(fd);
+            if (dot && !strcmp(dot, ".gcda")) { // this path is cov path
+                if (tcp->u_rval != -1) {
+                    kernel_long_t fd = tcp->u_rval;
+                    insert_cov_fd(fd);
+                }
                 return true;
             }
         }
