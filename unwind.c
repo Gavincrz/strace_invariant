@@ -400,11 +400,21 @@ unwind_tcb_output(struct tcb *tcp, bool print)
 	if (!print)
     {
         uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
+        // replace strings
+        for (i = 0; stack_buf[i] != '\0'; i++)
+        {
+            if(stack_buf[i] == '\n')
+            {
+                stack_buf[i] = '%';
+            }
+            else
+                continue;
+        }
         if (cov_file != NULL)
         {
             // append the syscall to record file
             FILE* fptr = fopen(cov_file, "a+");
-            fprintf(fptr, "%s: %u\n", tcp->s_ent->sys_name, hash);
+            fprintf(fptr, "%s: %u: %s\n", tcp->s_ent->sys_name, hash, stack_buf);
             fclose(fptr);
         }
     }
