@@ -296,7 +296,7 @@ queue_put_error(void *queue,
 }
 
 static void
-queue_output(struct unwind_queue_t *queue, bool print)
+queue_output(struct unwind_queue_t *queue, bool print, struct tcb *tcp)
 {
 	struct call_t *call, *tmp;
 
@@ -326,8 +326,9 @@ queue_output(struct unwind_queue_t *queue, bool print)
 	}
 	if (!print) {
         uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
-        tprints(stack_buf);
-        tprintf("%lu\n", hash);
+        char hash_str[1024];
+        sprintf(hash_str, "%s: %lu\n", tcp->s_ent->sys_name, hash);
+        tprints(hash_str);
         line_ended();
 	}
 }
@@ -335,7 +336,7 @@ queue_output(struct unwind_queue_t *queue, bool print)
 static void
 queue_print(struct unwind_queue_t *queue)
 {
-    queue_output(queue, true);
+    queue_output(queue, true, NULL);
 }
 
 /*
@@ -354,7 +355,7 @@ unwind_tcb_output(struct tcb *tcp, bool print)
 		debug_func_msg("head: tcp=%p, queue=%p",
 			       tcp, tcp->unwind_queue->head);
 
-		queue_output(tcp->unwind_queue, print);
+		queue_output(tcp->unwind_queue, print, tcp);
 
 	} else
 		unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
