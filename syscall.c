@@ -688,21 +688,21 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 	}
 
 #ifdef ENABLE_STACKTRACE
-//	if (stack_trace_enabled) {
-//		if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
-//			unwind_tcb_capture(tcp);
-//	}
-#endif
-    if (!after_accept || (after_accept && accept_called)) {
-        if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER) {
-            if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
-                if (stack_trace_enabled) {
-                    if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
-                        unwind_tcb_capture(tcp);
-                }
-            }
-        }
+	if (stack_trace_enabled || cov_enabled) {
+		if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
+			unwind_tcb_capture(tcp);
 	}
+#endif
+//    if (!after_accept || (after_accept && accept_called)) {
+//        if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER) {
+//            if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
+//                if (stack_trace_enabled) {
+//                    if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
+//                        unwind_tcb_capture(tcp);
+//                }
+//            }
+//        }
+//	}
 
 	printleader(tcp);
 	tprintf("%s(", tcp->s_ent->sys_name);
@@ -961,8 +961,8 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	line_ended();
 
 #ifdef ENABLE_STACKTRACE
-//	if (stack_trace_enabled)
-//		unwind_tcb_print(tcp);
+	if (stack_trace_enabled || cov_enabled)
+		unwind_tcb_print(tcp);
 #endif
     if (!after_accept || (after_accept && accept_called)) { // do the fuzzing after accept called
         if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){
@@ -976,8 +976,8 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
                 FILE* fptr = fopen(OUT_COUNT_FILE, "w+");
                 fprintf(fptr, "%d\n", count);
                 fclose(fptr);
-                if (stack_trace_enabled)
-                    unwind_tcb_print(tcp);
+//                if (stack_trace_enabled)
+//                    unwind_tcb_print(tcp);
             }
 
             tcp->s_ent->invariant_func(tcp, count);

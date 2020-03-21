@@ -469,6 +469,7 @@ extern unsigned followfork;
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 extern bool stack_trace_enabled;
+extern bool cov_enabled;
 extern bool should_tamper;
 #endif
 extern unsigned ptrace_setoptions;
