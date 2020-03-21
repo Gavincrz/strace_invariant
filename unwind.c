@@ -327,7 +327,7 @@ queue_output(struct unwind_queue_t *queue, bool print, struct tcb *tcp)
 	if (!print) {
         uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
         char hash_str[1024];
-        sprintf(hash_str, "%s: %lu\n", tcp->s_ent->sys_name, hash);
+        sprintf(hash_str, "%s: %u\n", tcp->s_ent->sys_name, hash);
         tprints(hash_str);
         line_ended();
 	}
