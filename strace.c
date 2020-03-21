@@ -84,6 +84,7 @@ bool cov_test = false;
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;
+bool cov_enabled;
 #endif
 
 #define my_tkill(tid, sig) syscall(__NR_tkill, (tid), (sig))
@@ -753,7 +754,7 @@ after_successful_attach(struct tcb *tcp, const unsigned int flags)
 	}
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
+	if (stack_trace_enabled || cov_enabled)
 		unwind_tcb_init(tcp);
 #endif
 }
@@ -850,7 +851,7 @@ droptcb(struct tcb *tcp)
 	free_tcb_priv_data(tcp);
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
+	if (stack_trace_enabled || cov_enabled)
 		unwind_tcb_fin(tcp);
 #endif
 
@@ -1663,7 +1664,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "k"
+	    "kK"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
@@ -1742,6 +1743,9 @@ init(int argc, char *argv[])
 		case 'k':
 			stack_trace_enabled = true;
 			break;
+		case 'K':
+		    cov_enabled = true;
+		    break;
 #endif
 		case 'K':
 		    fuzz_config_fname = optarg;
@@ -1952,7 +1956,7 @@ init(int argc, char *argv[])
 	set_sighandler(SIGCHLD, SIG_DFL, &params_for_tracee.child_sa);
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
+	if (stack_trace_enabled || cov_enabled)
 		unwind_init();
 #endif
 
@@ -2425,7 +2429,7 @@ print_event_exit(struct tcb *tcp)
 	tprints("= ?\n");
 	line_ended();
 #ifdef ENABLE_STACKTRACE
-    if (stack_trace_enabled)
+    if (stack_trace_enabled || cov_enabled)
 		unwind_tcb_fin(tcp);
 #endif
 }
