@@ -327,7 +327,7 @@ queue_output(struct unwind_queue_t *queue, bool print)
 	if (!print) {
         uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
         tprints(stack_buf);
-        tprints("%lu\n", hash);
+        tprintf("%lu\n", hash);
         line_ended();
 	}
 }
