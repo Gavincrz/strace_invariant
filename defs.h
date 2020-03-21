@@ -325,6 +325,7 @@ extern int num_fuzz_syscalls;
 /** Syscall used as accept syscall to indicate when should a clinet connect to it */
 extern char *accept_syscall;
 extern char *record_file;
+extern char *cov_file;
 extern pid_t fuzzer_pid;
 extern bool after_accept;  // should we only fuzz syscall after accept
 extern bool accept_called;

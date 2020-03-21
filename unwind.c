@@ -36,6 +36,8 @@
 # endif
 #endif
 
+char stack_buf[4096];
+
 /* murmur hash in c, copied from wikipedia */
 static inline uint32_t murmur_32_scramble(uint32_t k) {
     k *= 0xcc9e2d51;
@@ -187,6 +189,43 @@ print_call_cb(void *dummy,
 }
 
 static void
+output_call_cb(void *dummy,
+              const char *binary_filename,
+              const char *symbol_name,
+              unwind_function_offset_t function_offset,
+              unsigned long true_offset)
+{
+    char tmp[1024];
+    strcpy(tmp,  "");
+
+    if (symbol_name && (symbol_name[0] != '\0')) {
+#ifdef USE_DEMANGLE
+        char *demangled_name =
+			cplus_demangle(symbol_name,
+				       DMGL_AUTO | DMGL_PARAMS);
+#endif
+        sprintf(tmp, STACK_ENTRY_SYMBOL_FMT(
+#ifdef USE_DEMANGLE
+                demangled_name ? demangled_name :
+#endif
+                symbol_name));
+#ifdef USE_DEMANGLE
+        free(demangled_name);
+#endif
+    }
+    else if (binary_filename) {
+        sprintf(tmp, STACK_ENTRY_NOSYMBOL_FMT);
+    }
+
+    else
+    {
+        sprintf(tmp, STACK_ENTRY_BUG_FMT, __func__);
+    }
+
+    strcat(stack_buf, tmp);
+}
+
+static void
 print_error_cb(void *dummy,
 	       const char *error,
 	       unsigned long true_offset)
@@ -296,14 +335,13 @@ queue_put_error(void *queue,
 }
 
 static void
-queue_output(struct unwind_queue_t *queue, bool print, struct tcb *tcp)
+queue_output(struct unwind_queue_t *queue, bool print)
 {
 	struct call_t *call, *tmp;
 
 	queue->tail = NULL;
 	call = queue->head;
 	queue->head = NULL;
-	char stack_buf[4096];
     strcpy(stack_buf,  "");
 
 	while (call) {
@@ -311,12 +349,11 @@ queue_output(struct unwind_queue_t *queue, bool print, struct tcb *tcp)
 		call = call->next;
         if (print) {
             tprints(tmp->output_line);
+            line_ended();
         }
         else {
             strcat(stack_buf, tmp->output_line);
         }
-		line_ended();
-
 		if (tmp->output_line != asprintf_error_str)
 			free(tmp->output_line);
 
@@ -324,19 +361,12 @@ queue_output(struct unwind_queue_t *queue, bool print, struct tcb *tcp)
 		tmp->next = NULL;
 		free(tmp);
 	}
-	if (!print) {
-        uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
-        char hash_str[1024];
-        sprintf(hash_str, "%s: %u\n", tcp->s_ent->sys_name, hash);
-        tprints(hash_str);
-        line_ended();
-	}
 }
 
 static void
 queue_print(struct unwind_queue_t *queue)
 {
-    queue_output(queue, true, NULL);
+    queue_output(queue, true);
 }
 
 /*
@@ -351,14 +381,34 @@ unwind_tcb_output(struct tcb *tcp, bool print)
 		return;
 	}
 #endif
+    strcpy(stack_buf, "");
 	if (tcp->unwind_queue->head) {
 		debug_func_msg("head: tcp=%p, queue=%p",
 			       tcp, tcp->unwind_queue->head);
 
-		queue_output(tcp->unwind_queue, print, tcp);
+		queue_output(tcp->unwind_queue, print);
 
-	} else
-		unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
+	} else {
+	    if (print){
+            unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
+	    }
+        else {
+
+            unwinder.tcb_walk(tcp, output_call_cb, print_error_cb, NULL);
+        }
+	}
+	if (!print)
+    {
+        uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
+        if (cov_file != NULL)
+        {
+            // append the syscall to record file
+            FILE* fptr = fopen(cov_file, "a+");
+            fprintf(fptr, "%s: %u\n", tcp->s_ent->sys_name, hash);
+            fclose(fptr);
+        }
+    }
+
 }
 
 void
