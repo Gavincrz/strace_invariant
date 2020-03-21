@@ -310,7 +310,7 @@ unwind_tcb_output(struct tcb *tcp, bool print)
 		debug_func_msg("head: tcp=%p, queue=%p",
 			       tcp, tcp->unwind_queue->head);
 
-		queue_print(tcp->unwind_queue, print);
+		queue_output(tcp->unwind_queue, print);
 
 	} else
 		unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
