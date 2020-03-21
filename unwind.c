@@ -255,18 +255,25 @@ queue_put_error(void *queue,
 }
 
 static void
-queue_print(struct unwind_queue_t *queue)
+queue_output(struct unwind_queue_t *queue, bool print)
 {
 	struct call_t *call, *tmp;
 
 	queue->tail = NULL;
 	call = queue->head;
 	queue->head = NULL;
+	char stack_buf[4096];
+    strcpy(stack_buf,  "");
+
 	while (call) {
 		tmp = call;
 		call = call->next;
-
-		tprints(tmp->output_line);
+        if (print) {
+            tprints(tmp->output_line);
+        }
+        else {
+            strcat(stack_buf, tmp->output_line);
+        }
 		line_ended();
 
 		if (tmp->output_line != asprintf_error_str)
@@ -276,13 +283,22 @@ queue_print(struct unwind_queue_t *queue)
 		tmp->next = NULL;
 		free(tmp);
 	}
+	if (!print) {
+        tprints(stack_buf);
+	}
+}
+
+static void
+queue_print(struct unwind_queue_t *queue)
+{
+    queue_output(queue, true);
 }
 
 /*
  * printing stack
  */
 void
-unwind_tcb_print(struct tcb *tcp)
+unwind_tcb_output(struct tcb *tcp, bool print)
 {
 #if SUPPORTED_PERSONALITIES > 1
 	if (tcp->currpers != DEFAULT_PERSONALITY) {
@@ -293,11 +309,18 @@ unwind_tcb_print(struct tcb *tcp)
 	if (tcp->unwind_queue->head) {
 		debug_func_msg("head: tcp=%p, queue=%p",
 			       tcp, tcp->unwind_queue->head);
-		queue_print(tcp->unwind_queue);
+
+		queue_print(tcp->unwind_queue, print);
+
 	} else
 		unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
 }
 
+void
+unwind_tcb_print(struct tcb *tcp)
+{
+    unwind_tcb_output(tcp, true)
+}
 /*
  * capturing stack
  */
