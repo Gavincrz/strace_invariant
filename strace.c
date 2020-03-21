@@ -1664,7 +1664,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "kK"
+	    "kn"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
@@ -1743,7 +1743,7 @@ init(int argc, char *argv[])
 		case 'k':
 			stack_trace_enabled = true;
 			break;
-		case 'K':
+		case 'n':
 		    cov_enabled = true;
 		    break;
 #endif
