@@ -1029,8 +1029,10 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	line_ended();
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled || cov_enabled)
+	if (stack_trace_enabled)
 		unwind_tcb_print(tcp);
+	if (cov_enabled)
+	    unwind_tcb_output(tcp, false);
 #endif
     if (!after_accept || (after_accept && accept_called)) { // do the fuzzing after accept called
         if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){

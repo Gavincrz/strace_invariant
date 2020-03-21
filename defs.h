@@ -1110,6 +1110,8 @@ extern void unwind_tcb_init(struct tcb *);
 extern void unwind_tcb_fin(struct tcb *);
 extern void unwind_tcb_print(struct tcb *);
 extern void unwind_tcb_capture(struct tcb *);
+extern void unwind_tcb_output(struct tcb *tcp, bool print);
+
 #endif
 
 #ifdef HAVE_LINUX_KVM_H
