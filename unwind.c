@@ -319,7 +319,7 @@ unwind_tcb_output(struct tcb *tcp, bool print)
 void
 unwind_tcb_print(struct tcb *tcp)
 {
-    unwind_tcb_output(tcp, true)
+    unwind_tcb_output(tcp, true);
 }
 /*
  * capturing stack
