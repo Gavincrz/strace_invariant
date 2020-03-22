@@ -152,7 +152,7 @@ unwind_tcb_fin(struct tcb *tcp)
 #define STACK_ENTRY_SYMBOL_SIMPLE(SYM)		\
 	" > %s(%s)\n",		\
 	binary_filename,			\
-	(SYM),					\
+	(SYM)					
 
 #define STACK_ENTRY_NOSYMBOL_FMT		\
 	" > %s() [0x%lx]\n",			\
