@@ -144,7 +144,7 @@ INV_FUNC(dup2)
     INV_FUNC_RET_ONLY(dup2)
 }
 
-FUZZ_FILE(dup2)
+FUZZ_FUNC(dup2)
 {
     FUZZ_FUNC_RET_ONLY(dup2)
 }
@@ -154,9 +154,9 @@ INV_FUNC(dup3)
     INV_FUNC_RET_ONLY(dup3)
 }
 
-FUZZ_FILE(dup3)
+FUZZ_FUNC(dup3)
 {
-FUZZ_FUNC_RET_ONLY(dup3)
+    FUZZ_FUNC_RET_ONLY(dup3)
 }
 
 SYS_FUNC(dup2)
