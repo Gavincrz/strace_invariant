@@ -41,3 +41,9 @@ SYS_FUNC(bind)
 
 	return RVAL_DECODED;
 }
+
+
+FUZZ_FUNC(bind)
+{
+    FUZZ_FUNC_RET_ONLY(bind)
+}
