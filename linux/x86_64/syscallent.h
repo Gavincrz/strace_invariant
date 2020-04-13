@@ -211,7 +211,7 @@
 [210] = { 3,	0,		SEN(io_cancel),			"io_cancel"		},
 [211] = { 1,	0,		SEN(get_thread_area),		"get_thread_area"	},
 [212] = { 3,	0,		SEN(lookup_dcookie),		"lookup_dcookie"	},
-[213] = { 1,	TD,		SEN(epoll_create),		"epoll_create"		},
+[213] = { 1,	TD,		SEN_FUZZ(epoll_create),		"epoll_create"		},
 [214] = { 4,	0,		SEN(printargs),			"epoll_ctl_old"		},
 [215] = { 4,	0,		SEN(printargs),			"epoll_wait_old"	},
 [216] = { 5,	TM|SI,		SEN(remap_file_pages),		"remap_file_pages"	},

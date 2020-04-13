@@ -32,6 +32,11 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 
+FUZZ_FUNC(epoll_create)
+{
+    FUZZ_FUNC_RET_ONLY(epoll_create)
+}
+
 SYS_FUNC(epoll_create)
 {
 	tprintf("%d", (int) tcp->u_arg[0]);
