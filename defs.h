@@ -481,7 +481,7 @@ extern unsigned os_release;
 #define OUT_PUT_DIRECOTRY "/home/gavin/syscall_ret_fuzzer/"
 #define OUT_COUNT_FILE  OUT_PUT_DIRECOTRY "final_count.txt"
 #define OUT_PID_FILE OUT_PUT_DIRECOTRY "pid.txt"
-#define INPUT_DIRECTORY "/home/gavin/strace/return/"
+#define INPUT_DIRECTORY "/home/gavin/strace_old/return/"
 #define FUZZ_FILE(scname)  INPUT_DIRECTORY #scname ".input"
 extern void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret);
 extern int read_fuzz_file(const char* filename, int **ibuf, int num_var);
