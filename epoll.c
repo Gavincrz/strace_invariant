@@ -199,6 +199,7 @@ INV_FUNC(epoll_wait)
 
         if (ibuf == NULL){
             vcount = read_fuzz_file(FUZZ_FILE(epoll_wait), &ibuf, num_ret);
+            tprintf("\nvcount for epoll is: %d \n", vcount);
         }
         if (vcount >= 0 && count >= vcount){
             /* read data from tracee */
