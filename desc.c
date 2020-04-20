@@ -397,7 +397,7 @@ FUZZ_FUNC(select)
 
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+    r_set rlist[NUM_RET_SELECT] = {{&ret, sizeof(int), "ret", 0, 0},
                                   {readfds, fd_size, "readfds", 0, 0},
                                   {writefds, fd_size, "writefds", 0, 0},
                                   {exceptfds, fd_size, "exceptfds", 0, 0},

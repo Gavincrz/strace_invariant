@@ -606,7 +606,7 @@ FUZZ_FUNC(getsockname)
     tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+    r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
                                   {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
@@ -1105,7 +1105,7 @@ FUZZ_FUNC(getsockopt)
     tfetch_mem(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+    r_set rlist[NUM_RET_GETSOCKOPT] = {{&ret, sizeof(int), "ret", 0, 0},
                                   {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
     COMMON_FUZZ
 
