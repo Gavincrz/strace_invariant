@@ -73,6 +73,7 @@ char *record_file = NULL; // output syscall sequence to it
 pid_t fuzzer_pid = -1;
 bool after_accept = false;
 bool accept_called = false;
+char *cov_file = NULL; // output cov hashes
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -747,7 +748,7 @@ after_successful_attach(struct tcb *tcp, const unsigned int flags)
 	}
 
 #ifdef ENABLE_STACKTRACE
-	if (stack_trace_enabled)
+	if (stack_trace_enabled || cov_enabled)
 		unwind_tcb_init(tcp);
 #endif
 }
@@ -1628,7 +1629,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "kK"
+	    "kn:"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lL:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
@@ -1707,8 +1708,9 @@ init(int argc, char *argv[])
 		case 'k':
 			stack_trace_enabled = true;
 			break;
-		case 'K':
+		case 'n':
 		    cov_enabled = true;
+		    cov_file = optarg;
 		    break;
 #endif
 		case 'l':
@@ -1819,6 +1821,14 @@ init(int argc, char *argv[])
 	if (record_file != NULL) {
 		remove(record_file);
 	}
+
+    if (cov_file != NULL) {
+        int fd = open(cov_file, O_CREAT|O_RDWR, 0666);
+        if (fd == -1) {
+            error_msg_and_help("unable to create cov_file");
+        }
+        close(fd);
+    }
 
 	if (followfork >= 2 && cflag) {
 		error_msg_and_help("(-c or -C) and -ff are mutually exclusive");

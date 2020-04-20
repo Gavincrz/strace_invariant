@@ -318,6 +318,7 @@ extern char *record_file;
 extern pid_t fuzzer_pid;
 extern bool after_accept;  // should we only fuzz syscall after accept
 extern bool accept_called;
+extern char *cov_file;
 
 extern const struct xlat addrfams[];
 
@@ -1090,6 +1091,7 @@ extern void unwind_tcb_init(struct tcb *);
 extern void unwind_tcb_fin(struct tcb *);
 extern void unwind_tcb_print(struct tcb *);
 extern void unwind_tcb_capture(struct tcb *);
+extern void unwind_tcb_output(struct tcb *);
 #endif
 
 #ifdef HAVE_LINUX_KVM_H
