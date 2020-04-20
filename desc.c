@@ -377,6 +377,50 @@ INV_FUNC(select)
 	}
 }
 
+FUZZ_FUNC(select)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_SELECT;
+
+    // read the original data
+    size_t fd_size = sizeof(fd_set);
+
+    fd_set *readfds = (fd_set*)malloc(fd_size);
+    fd_set *writefds = (fd_set*)malloc(fd_size);
+    fd_set *exceptfds = (fd_set*)malloc(fd_size);
+    struct timeval *timeout = (struct timeval*)malloc(sizeof(struct timeval));
+
+    tfetch_mem(tcp, tcp->u_arg[1], fd_size, readfds);
+    tfetch_mem(tcp, tcp->u_arg[2], fd_size, writefds);
+    tfetch_mem(tcp, tcp->u_arg[3], fd_size, exceptfds);
+    tfetch_mem(tcp, tcp->u_arg[4], sizeof(struct timeval), timeout);
+
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+                                  {readfds, fd_size, "readfds", 0, 0},
+                                  {writefds, fd_size, "writefds", 0, 0},
+                                  {exceptfds, fd_size, "exceptfds", 0, 0},
+                                  {timeout, sizeof(struct timeval), "timeout", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, readfds, tcp->u_arg[1], fd_size);
+    vm_write_mem(tcp->pid, writefds, tcp->u_arg[2], fd_size);
+    vm_write_mem(tcp->pid, exceptfds, tcp->u_arg[3], fd_size);
+    vm_write_mem(tcp->pid, timeout, tcp->u_arg[4], sizeof(struct timeval));
+    free(readfds);
+    free(writefds);
+    free(exceptfds);
+    free(timeout);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 SYS_FUNC(select)
 {
 	return decode_select(tcp, tcp->u_arg, print_timeval, sprint_timeval);

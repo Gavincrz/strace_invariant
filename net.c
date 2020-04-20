@@ -134,6 +134,10 @@ tprint_sock_type(unsigned int flags)
 	printflags(sock_type_flags, flags, "SOCK_???");
 }
 
+FUZZ_FUNC(socket)
+{
+    FUZZ_FUNC_RET_ONLY(epoll_create)
+}
 
 #define NUM_RET_SOCKET 1
 INV_FUNC(socket)
@@ -540,6 +544,8 @@ SYS_FUNC(getsockname)
 }
 
 
+
+
 #define NUM_RET_GETSOCKNAME 3
 INV_FUNC(getsockname)
 {
@@ -587,6 +593,31 @@ INV_FUNC(getsockname)
 
 
 	}
+}
+#undef NUM_RET_GETSOCKNAME
+#define NUM_RET_GETSOCKNAME 2
+FUZZ_FUNC(getsockname)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_GETSOCKNAME;
+
+    // read the original data
+    socklen_t addrlen;
+    tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+                                  {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &addrlen, tcp->u_arg[2], sizeof(socklen_t));
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
 }
 
 static void
@@ -1063,6 +1094,33 @@ void print_arg_trace_getsockopt(struct tcb *tcp)
     };
 }
 
+#define  NUM_RET_GETSOCKOPT 2
+FUZZ_FUNC(getsockopt)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_GETSOCKOPT;
+
+    // read the original data
+    socklen_t optlen;
+    tfetch_mem(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+                                  {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &optlen, tcp->u_arg[4], sizeof(socklen_t));
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
+
+#undef NUM_RET_GETSOCKOPT
 #define  NUM_RET_GETSOCKOPT 3
 INV_FUNC(getsockopt)
 {

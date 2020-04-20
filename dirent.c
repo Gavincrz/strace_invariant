@@ -71,6 +71,34 @@ SYS_FUNC(readdir)
 	return 0;
 }
 
+#define NUM_RET_GETDENTS 2
+FUZZ_FUNC(getdents)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_GETDENTS;
+
+    // read the original data
+    unsigned int len = sizeof(char) * tcp->u_arg[2];
+    void* buf = malloc(len);
+    tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
+                                  {buf, len, "dirp", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, buf, tcp->u_arg[1], len);
+    free(buf);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
+#undef NUM_RET_GETDENTS
 #define  NUM_RET_GETDENTS 2
 INV_FUNC(getdents)
 {
