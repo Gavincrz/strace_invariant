@@ -43,7 +43,7 @@
 [ 42] = { 3,	TN,		SEN(connect),			"connect"		},
 [ 43] = { 3,	TN,		SEN_TRACE(accept),			"accept"		},
 [ 44] = { 6,	TN,		SEN_TRACE(sendto),			"sendto"		},
-[ 45] = { 6,	TN,		SEN_TRACE(recvfrom),			"recvfrom"		},
+[ 45] = { 6,	TN,		SEN_FUZZ(recvfrom),			"recvfrom"		},
 [ 46] = { 3,	TN,		SEN(sendmsg),			"sendmsg"		},
 [ 47] = { 3,	TN,		SEN_TRACE(recvmsg),			"recvmsg"		},
 [ 48] = { 2,	TN,		SEN(shutdown),			"shutdown"		},

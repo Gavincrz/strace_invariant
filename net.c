@@ -437,6 +437,11 @@ SYS_FUNC(recv)
 }
 
 
+FUZZ_FUNC(recvfrom)
+{
+    FUZZ_FUNC_RET_ONLY(recvfrom)
+}
+
 #define NUM_RET_RECVFROM 3
 INV_FUNC(recvfrom)
 {
