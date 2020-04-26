@@ -600,25 +600,30 @@ INV_FUNC(getsockname)
 	}
 }
 #undef NUM_RET_GETSOCKNAME
-#define NUM_RET_GETSOCKNAME 2
+#define NUM_RET_GETSOCKNAME 3
 FUZZ_FUNC(getsockname)
 {
     // pick one value to modify
     int ret_index = rand() % NUM_RET_GETSOCKNAME;
 
     // read the original data
-    socklen_t addrlen;
+    socklen_t addrlen, ulen;
+    ulen = get_tcb_priv_ulong(tcp);
+    void *buf = malloc(ulen);
+    tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
     tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
-                                  {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
+                                        {buf, ulen, "addr", 0, 0},
+                                        {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
     // write back the value;
     tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, buf, tcp->u_arg[1], ulen);
     vm_write_mem(tcp->pid, &addrlen, tcp->u_arg[2], sizeof(socklen_t));
-
+    free(buf);
     // modify return value
     if (ret_index == 0) {
         tcp->ret_modified = 1;

@@ -190,6 +190,35 @@ SYS_FUNC(prlimit64)
 }
 
 #define NUM_RET_PRLIMIT64 2
+
+FUZZ_FUNC(prlimit64)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_PRLIMIT64;
+
+    // read the original data
+    unsigned int len = sizeof(struct rlimit);
+    struct rlimit limitbuf;
+    if (tcp->u_arg[3] != 0) {
+        tfetch_mem(tcp, tcp->u_arg[3], len, &limitbuf);
+    }
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_PRLIMIT64] = {{&ret, sizeof(int), "ret", 0, 0},
+                                      {&limitbuf, len, "old_limit", 0, 0}};
+    COMMON_FUZZ
+
+    tcp->u_rval = ret;
+    // write back the value;
+    if (tcp->u_arg[3] != 0) {
+        vm_write_mem(tcp->pid, &limitbuf, tcp->u_arg[3], len);
+    }
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 INV_FUNC(prlimit64)
 {
 	static int *ibuf = NULL;
