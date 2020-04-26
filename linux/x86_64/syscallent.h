@@ -300,7 +300,7 @@
 [299] = { 5,	TN,		SEN(recvmmsg),			"recvmmsg"		},
 [300] = { 2,	TD,		SEN(fanotify_init),		"fanotify_init"		},
 [301] = { 5,	TD|TF,		SEN(fanotify_mark),		"fanotify_mark"		},
-[302] = { 4,	0,		SEB_FUZZ(prlimit64),			"prlimit64"		},
+[302] = { 4,	0,		SEN_FUZZ(prlimit64),			"prlimit64"		},
 [303] = { 5,	TD|TF,		SEN(name_to_handle_at),		"name_to_handle_at"	},
 [304] = { 3,	TD,		SEN(open_by_handle_at),		"open_by_handle_at"	},
 [305] = { 2,	0,		SEN(clock_adjtime),		"clock_adjtime"		},
