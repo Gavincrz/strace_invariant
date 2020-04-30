@@ -210,11 +210,11 @@ output_call_cb(void *dummy,
 			cplus_demangle(symbol_name,
 				       DMGL_AUTO | DMGL_PARAMS);
 #endif
-        sprintf(tmp, STACK_ENTRY_SYMBOL_SIMPLE(
+        sprintf(tmp, STACK_ENTRY_SYMBOL_FMT(
 #ifdef USE_DEMANGLE
-                demangled_name ? demangled_name :
+                        demangled_name ? demangled_name :
 #endif
-                symbol_name));
+                        symbol_name));
 #ifdef USE_DEMANGLE
         free(demangled_name);
 #endif
