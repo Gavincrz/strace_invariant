@@ -1752,7 +1752,7 @@ init(int argc, char *argv[])
 		    break;
 
 		 case 'N':
-		    not_write = ture;
+		    not_write = true;
 		    break;
 #endif
 		case 'K':
