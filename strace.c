@@ -87,6 +87,7 @@ bool cov_test = false;
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;
 bool cov_enabled;
+bool not_write = false;
 #endif
 
 #define my_tkill(tid, sig) syscall(__NR_tkill, (tid), (sig))
@@ -1666,7 +1667,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "kn:"
+	    "knN:"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
@@ -1748,6 +1749,10 @@ init(int argc, char *argv[])
 		case 'n':
 		    cov_enabled = true;
 		    cov_file = optarg;
+		    break;
+
+		 case 'N':
+		    not_write = ture;
 		    break;
 #endif
 		case 'K':

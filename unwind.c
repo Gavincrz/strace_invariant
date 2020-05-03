@@ -416,7 +416,7 @@ unwind_tcb_output(struct tcb *tcp, bool print)
             else
                 continue;
         }
-        if (cov_file != NULL)
+        if (cov_file != NULL && !not_write)
         {
             // append the syscall to record file
             FILE* fptr = fopen(cov_file, "a+");

@@ -491,6 +491,7 @@ extern unsigned followfork;
 /* if this is true do the stack trace for every system call */
 extern bool stack_trace_enabled;
 extern bool cov_enabled;
+extern bool not_write;
 extern bool should_tamper;
 #endif
 extern unsigned ptrace_setoptions;
