@@ -40,7 +40,7 @@ arch_get_syscall_args(struct tcb *tcp)
 		tcp->u_arg[3] = (uint32_t) i386_regs.esi;
 		tcp->u_arg[4] = (uint32_t) i386_regs.edi;
 		tcp->u_arg[5] = (uint32_t) i386_regs.ebp;
-        tcp->pc = (uint32_t) i386_regs.rip;
+        tcp->pc = (uint32_t) i386_regs.eip;
 	}
 	return 1;
 }
