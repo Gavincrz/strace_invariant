@@ -1755,7 +1755,7 @@ init(int argc, char *argv[])
 		    not_write = true;
 		    break;
 		case 'Q':
-		    accept_hash = string_to_uint(optarg);
+		    accept_hash = string_to_ulong(optarg);
             break;
 #endif
 		case 'K':
