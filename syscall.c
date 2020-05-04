@@ -728,7 +728,7 @@ syscall_entering_finish(struct tcb *tcp, int res)
         && fuzzer_pid > 0
         && !accept_called /* only send signal once*/
         && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0){
-        fprintf(stderr, "sending signal %d to parent script, parent pid %d, eip is: %d\n",
+        fprintf(stderr, "sending signal %d to parent script, parent pid %d, eip is: %ld\n",
                 SIGRTMAX-7, fuzzer_pid, tcp->pc);
         kill(fuzzer_pid, SIGRTMAX-7);
         accept_called = true;
