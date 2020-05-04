@@ -742,7 +742,7 @@ syscall_entering_finish(struct tcb *tcp, int res)
 
     if (accept_syscall != NULL && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
         && hash != 0) {
-        fprintf(stderr, "accept hash = %u", hash);
+        fprintf(stderr, "accept hash = %u, recorded hash = %u, equal=%d", hash, accept_hash, hash==accept_hash);
     }
 }
 
