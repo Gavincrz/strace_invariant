@@ -734,7 +734,7 @@ syscall_entering_finish(struct tcb *tcp, int res)
         && !accept_called /* only send signal once*/
         && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
         && ((cov_enabled && accept_hash > 0 && accept_hash == hash) || (accept_hash == 0))){
-        fprintf(stderr, "sending signal %d to parent script, parent pid %u\n",
+        fprintf(stderr, "sending signal %d to parent script, parent pid %d\n",
                 SIGRTMAX-7, fuzzer_pid);
         kill(fuzzer_pid, SIGRTMAX-7);
         accept_called = true;
@@ -742,7 +742,7 @@ syscall_entering_finish(struct tcb *tcp, int res)
 
     if (accept_syscall != NULL && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
         && hash != 0) {
-        fprintf(stderr, "accept hash = %d", hash);
+        fprintf(stderr, "accept hash = %u", hash);
     }
 }
 
