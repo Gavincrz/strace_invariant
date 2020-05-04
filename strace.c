@@ -74,6 +74,7 @@ char *accept_syscall = NULL;
 char *record_file = NULL; // output syscall sequence to it
 char *fuzz_config_fname = NULL; // json file store fuzz configs
 char *cov_file = NULL; // output cov hashes
+uint32_t accept_hash = 0;
 
 int num_fuzz_syscalls = 0;
 struct syscall_elem * syscall_fuzz_array = NULL;
@@ -1667,7 +1668,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "kn:N"
+	    "kn:NQ:"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
@@ -1750,9 +1751,12 @@ init(int argc, char *argv[])
 		    cov_enabled = true;
 		    cov_file = optarg;
 		    break;
-		 case 'N':
+		case 'N':
 		    not_write = true;
 		    break;
+		case 'Q':
+		    accept_hash = string_to_uint(optarg);
+            break;
 #endif
 		case 'K':
 		    fuzz_config_fname = optarg;

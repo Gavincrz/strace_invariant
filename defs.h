@@ -331,6 +331,7 @@ extern bool after_accept;  // should we only fuzz syscall after accept
 extern bool accept_called;
 extern int rand_fd;
 extern bool cov_test;
+extern uint32_t accept_hash;
 
 extern const struct xlat addrfams[];
 
@@ -1112,7 +1113,7 @@ extern void unwind_tcb_init(struct tcb *);
 extern void unwind_tcb_fin(struct tcb *);
 extern void unwind_tcb_print(struct tcb *);
 extern void unwind_tcb_capture(struct tcb *);
-extern void unwind_tcb_output(struct tcb *tcp, bool print);
+extern uint32_t unwind_tcb_output(struct tcb *tcp, bool print);
 
 #endif
 

@@ -378,13 +378,13 @@ queue_print(struct unwind_queue_t *queue)
 /*
  * printing stack
  */
-void
+uint32_t
 unwind_tcb_output(struct tcb *tcp, bool print)
 {
 #if SUPPORTED_PERSONALITIES > 1
 	if (tcp->currpers != DEFAULT_PERSONALITY) {
 		/* disable stack trace */
-		return;
+		return 0;
 	}
 #endif
     strcpy(stack_buf, "");
@@ -423,7 +423,9 @@ unwind_tcb_output(struct tcb *tcp, bool print)
             fprintf(fptr, "%s: %u: %s\n", tcp->s_ent->sys_name, hash, stack_buf);
             fclose(fptr);
         }
+        return hash;
     }
+	return 0;
 
 }
 
