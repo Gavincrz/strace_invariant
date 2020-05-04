@@ -241,7 +241,7 @@ struct tcb {
 	struct timespec delay_expiration_time; /* When does the delay end */
     int ret_modified; /* indicate if the return value is altered */
 	struct mmap_cache_t *mmap_cache;
-
+    kernel_ulong_t pc;
 #ifdef HAVE_LINUX_KVM_H
 	struct vcpu_info *vcpu_info_list;
 #endif

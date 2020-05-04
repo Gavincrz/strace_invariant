@@ -17,6 +17,7 @@ arch_get_syscall_args(struct tcb *tcp)
 			tcp->u_arg[3] = (uint32_t) x86_64_regs.r10;
 			tcp->u_arg[4] = (uint32_t) x86_64_regs.r8;
 			tcp->u_arg[5] = (uint32_t) x86_64_regs.r9;
+			tcp->pc = (uint32_t) x86_64_regs.eip;
 		} else {
 			tcp->u_arg[0] = x86_64_regs.rdi;
 			tcp->u_arg[1] = x86_64_regs.rsi;
@@ -24,6 +25,7 @@ arch_get_syscall_args(struct tcb *tcp)
 			tcp->u_arg[3] = x86_64_regs.r10;
 			tcp->u_arg[4] = x86_64_regs.r8;
 			tcp->u_arg[5] = x86_64_regs.r9;
+            tcp->pc = x86_64_regs.eip;
 		}
 	} else {
 		/*
@@ -38,6 +40,7 @@ arch_get_syscall_args(struct tcb *tcp)
 		tcp->u_arg[3] = (uint32_t) i386_regs.esi;
 		tcp->u_arg[4] = (uint32_t) i386_regs.edi;
 		tcp->u_arg[5] = (uint32_t) i386_regs.ebp;
+        tcp->pc = (uint32_t) i386_regs.eip;
 	}
 	return 1;
 }
