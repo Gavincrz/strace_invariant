@@ -40,7 +40,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     if (write) {
         error_msg_and_die("do not know how to handle write option");
     }
-    _UPT_accessors.access_mem(as, addr, val, write, arg);
+    return _UPT_accessors.access_mem(as, addr, val, write, arg);
 }
 
 
