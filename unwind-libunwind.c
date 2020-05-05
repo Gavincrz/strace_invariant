@@ -30,6 +30,7 @@
 
 #include "mmap_cache.h"
 #include <libunwind-ptrace.h>
+#include <string.h>
 
 static unw_addr_space_t libunwind_as;
 
@@ -38,8 +39,10 @@ int
 _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
                  int write, void *arg) {
     if (write) {
-        error_msg_and_die("do not know how to handle write option");
+        perror_msg("customized accessor do not support mem write, use original ptrace\n");
+        return _UPT_accessors.access_mem(as, addr, val, write, arg);
     }
+
     return _UPT_accessors.access_mem(as, addr, val, write, arg);
 }
 
@@ -50,7 +53,7 @@ init(void)
 	mmap_cache_enable();
     unw_accessors_t proc_accessors = _UPT_accessors;
     proc_accessors.access_mem = _proc_access_mem;
-	libunwind_as = unw_create_addr_space(&proc_accessors, 0);
+	libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
 	if (!libunwind_as)
 		error_msg_and_die("failed to create address space"
 				  " for stack tracing");
