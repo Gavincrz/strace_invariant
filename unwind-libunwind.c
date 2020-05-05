@@ -53,7 +53,7 @@ init(void)
 	mmap_cache_enable();
     unw_accessors_t proc_accessors = _UPT_accessors;
     proc_accessors.access_mem = _proc_access_mem;
-	libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
+	libunwind_as = unw_create_addr_space(&proc_accessors, 0);
 	if (!libunwind_as)
 		error_msg_and_die("failed to create address space"
 				  " for stack tracing");
