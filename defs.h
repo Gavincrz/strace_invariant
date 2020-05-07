@@ -329,6 +329,7 @@ extern char *cov_file;
 extern pid_t fuzzer_pid;
 extern bool after_accept;  // should we only fuzz syscall after accept
 extern bool accept_called;
+extern bool proc_unwind;
 extern int rand_fd;
 extern bool cov_test;
 extern uint32_t accept_hash;

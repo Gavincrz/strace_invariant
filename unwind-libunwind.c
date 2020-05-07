@@ -31,9 +31,118 @@
 #include "mmap_cache.h"
 #include <libunwind-ptrace.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
+
+#define MAX_REGIONS 1024
 static unw_addr_space_t libunwind_as;
 
+struct mem_region
+{
+    unsigned long start_addr;
+    unsigned long end_addr;
+    void* data;
+};
+
+
+struct proc_info
+{
+    char reserved[256]; // reserved for UPT_info
+    char map_path[64]; // even they already saved in UPT_info, have no access to it
+    char mem_path[64];
+    int num_regions;
+    struct mem_region regions[MAX_REGIONS]; // create a max region, assume not excess
+
+};
+
+
+void
+free_mem_region(struct proc_info* info)
+{
+    for (int i = 0; i < MAX_REGIONS; i++)
+    {
+        free(info->regions[i].data);
+        info->regions[i].data = NULL;
+    }
+}
+
+void
+init_proc_info(struct proc_info* info, int pid)
+{
+    // initialize them with invalid
+    sprintf(info->map_path, "/proc/%d/maps", pid);
+    sprintf(info->mem_path, "/proc/%d/mem", pid);
+    perror_msg("map path is: %s\n", info->map_path);
+    perror_msg("mem path is: %s\n", info->mem_path);
+    info->num_regions = 0;
+    perror_msg("size of regions = %ld", sizeof(info->regions));
+    memset(&(info->regions), 0, sizeof(info->regions));
+}
+
+int
+find_mem_region(struct proc_info* info, unw_word_t addr)
+{
+    for (int i = 0; i < info->num_regions; i++)
+    {
+        if (addr >= info->regions[i].start_addr
+        && addr < info->regions[i].end_addr){
+            // address found
+            return i;
+        }
+    }
+    return -1;
+}
+
+void
+get_mem_region_addr(struct proc_info* info)
+{
+    /* clear stored mem region */
+    free_mem_region(info);
+    FILE* map_fp = fopen(info->map_path, "r");
+    if (!map_fp) {
+        perror("Open maps");
+        return;
+    }
+
+    // parsing maps file, find stack address range
+    ssize_t line_size;
+    char *line_buf = NULL;
+    size_t line_buf_size = 0;
+    line_size = getline(&line_buf, &line_buf_size, map_fp);
+    char *ret;
+
+    /* get number of regions first time */
+    int region_count = 0;
+    /* Loop through until we are done with the file. */
+    while (line_size >= 0)
+    {
+        ret = strstr(line_buf, " r"); // only search for readable region
+        if (ret) {
+            if (region_count >= MAX_REGIONS) {
+                error_msg_and_die("region count reached MAX_REGION");
+            }
+            /* parsing and get the address */
+            char * addr_str = strtok(line_buf, " ");
+            sscanf(addr_str, "%lx-%lx", &(info->regions[region_count].start_addr),
+                   &(info->regions[region_count].end_addr));
+
+            region_count++;
+        }
+        /* Get the next line */
+        line_size = getline(&line_buf, &line_buf_size, map_fp);
+    }
+    info->num_regions = region_count;
+    free(line_buf);
+    line_buf = NULL;
+    fclose(map_fp);
+
+
+//    for (int i = 0; i < info->num_regions; i++) {
+//        perror_msg("0x%lx - 0x%lx", info->regions[i].start_addr, info->regions[i].end_addr);
+//    }
+}
 
 int
 _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
@@ -43,7 +152,47 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
         return _UPT_accessors.access_mem(as, addr, val, write, arg);
     }
 
-    return _UPT_accessors.access_mem(as, addr, val, write, arg);
+
+    struct proc_info *info = (struct proc_info *)arg;
+    // lazy load mem regions
+    int index = find_mem_region(info, addr);
+    if (index < 0) {
+        perror_msg("can not find addr 0x%lx, use default ptrace", addr);
+        return _UPT_accessors.access_mem(as, addr, val, write, arg);
+    }
+    struct mem_region* region = &(info->regions[index]);
+    // load the mem region if needed
+    if (!region->data)
+    {
+        int mem_fd = open(info->mem_path, O_RDONLY);
+        if (mem_fd < 0) {
+            perror_msg("Open mem file");
+            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+        }
+        unsigned long region_size = region->end_addr - region->start_addr;
+        region->data = malloc(sizeof(char) * region_size);
+
+        /* start read from stack location */
+        if (lseek(mem_fd, region->start_addr, SEEK_SET) < 0) {
+            perror_msg("Lseek mem");
+            close(mem_fd);
+            free(region->data);
+            region->data = NULL;
+            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+        }
+
+        if (read(mem_fd, region->data, region_size) < 0) {
+            perror_msg("Read mem");
+            close(mem_fd);
+            free(region->data);
+            region->data = NULL;
+            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+        }
+    }
+
+    // access the memory
+    *val = *(unw_word_t *)(region->data + (addr - region->start_addr));
+    return 0;
 }
 
 
@@ -51,9 +200,14 @@ static void
 init(void)
 {
 	mmap_cache_enable();
-    unw_accessors_t proc_accessors = _UPT_accessors;
-    proc_accessors.access_mem = _proc_access_mem;
-	libunwind_as = unw_create_addr_space(&proc_accessors, 0);
+	if (proc_unwind) {
+        unw_accessors_t proc_accessors = _UPT_accessors;
+        proc_accessors.access_mem = _proc_access_mem;
+        libunwind_as = unw_create_addr_space(&proc_accessors, 0);
+	}
+    else{
+        libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
+    }
 	if (!libunwind_as)
 		error_msg_and_die("failed to create address space"
 				  " for stack tracing");
@@ -67,12 +221,23 @@ tcb_init(struct tcb *tcp)
 
 	if (!r)
 		perror_msg_and_die("_UPT_create");
+
+	if (proc_unwind){
+        /* reallocate */
+        r = realloc(r, sizeof(struct proc_info));
+        /* initialize the part used for proc mem */
+        struct proc_info* info = (struct proc_info*)r;
+        init_proc_info(info, tcp->pid);
+	}
 	return r;
 }
 
 static void
 tcb_fin(struct tcb *tcp)
 {
+    if (proc_unwind) {
+        free_mem_region((struct proc_info *) tcp->unwind_ctx);
+    }
 	_UPT_destroy(tcp->unwind_ctx);
 }
 
@@ -158,6 +323,12 @@ walk(struct tcb *tcp,
 
 	if (unw_init_remote(&cursor, libunwind_as, tcp->unwind_ctx) < 0)
 		perror_func_msg_and_die("cannot initialize libunwind");
+
+	if (proc_unwind) {
+        /* also reload the mem map */
+        struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
+        get_mem_region_addr(info);
+	}
 
 	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
 		if (print_stack_frame(tcp, call_action, error_action, data,
