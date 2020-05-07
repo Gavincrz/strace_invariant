@@ -84,7 +84,7 @@ init_proc_info(struct proc_info* info, int pid)
 int
 find_mem_region(struct proc_info* info, unw_word_t addr)
 {
-    for (int i = 0; i < info->num_regions; i++)
+    for (int i = 0; i < MAX_REGIONS; i++)
     {
         if (addr >= info->regions[i].start_addr
         && addr < info->regions[i].end_addr){
@@ -98,8 +98,6 @@ find_mem_region(struct proc_info* info, unw_word_t addr)
 void
 get_mem_region_addr(struct proc_info* info)
 {
-    /* clear stored mem region */
-    free_mem_region(info);
     FILE* map_fp = fopen(info->map_path, "r");
     if (!map_fp) {
         perror("Open maps");
@@ -123,11 +121,23 @@ get_mem_region_addr(struct proc_info* info)
             if (region_count >= MAX_REGIONS) {
                 error_msg_and_die("region count reached MAX_REGION");
             }
+
+            char* writable = strstr(line_buf, " rw"); // check if the region is writable, if not, do not free the mem region
+            unsigned long start_addr, end_addr;
             /* parsing and get the address */
             char * addr_str = strtok(line_buf, " ");
-            sscanf(addr_str, "%lx-%lx", &(info->regions[region_count].start_addr),
-                   &(info->regions[region_count].end_addr));
+            sscanf(addr_str, "%lx-%lx", &(start_addr),
+                   &(end_addr));
+            if (!(start_addr == info->regions[region_count].start_addr
+                    && end_addr == info->regions[region_count].end_addr && !writable)) {
+                // unless addr matches and region not writable, free the mem, otherwise keep it
+                free(info->regions[region_count].data);
+                info->regions[region_count].data = NULL;
+                info->regions[region_count].start_addr = start_addr;
+                info->regions[region_count].end_addr = end_addr;
+            }
 
+            /* check if address mathces*/
             region_count++;
         }
         /* Get the next line */
