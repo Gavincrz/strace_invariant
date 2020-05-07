@@ -188,6 +188,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
             region->data = NULL;
             return _UPT_accessors.access_mem(as, addr, val, write, arg);
         }
+        close(mem_fd);
     }
 
     // access the memory
