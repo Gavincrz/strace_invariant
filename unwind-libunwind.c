@@ -157,9 +157,8 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     // lazy load mem regions
     int index = find_mem_region(info, addr);
     if (index < 0) {
-        int ret = _UPT_accessors.access_mem(as, addr, val, write, arg);
-        perror_msg_and_die("can not find addr 0x%lx, use default ptrace, ptrace return = %d", addr, ret);
-        return ret;
+//        perror_msg("can not find addr 0x%lx, use default ptrace, ptrace return = %d", addr, ret);
+        return -UNW_EINVAL;
     }
     struct mem_region* region = &(info->regions[index]);
     // load the mem region if needed
