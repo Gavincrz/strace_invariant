@@ -157,7 +157,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     // lazy load mem regions
     int index = find_mem_region(info, addr);
     if (index < 0) {
-        perror_msg("can not find addr 0x%lx, use default ptrace", addr);
+        perror_msg_and_die("can not find addr 0x%lx, use default ptrace", addr);
         return _UPT_accessors.access_mem(as, addr, val, write, arg);
     }
     struct mem_region* region = &(info->regions[index]);
@@ -166,7 +166,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     {
         int mem_fd = open(info->mem_path, O_RDONLY);
         if (mem_fd < 0) {
-            perror_msg("Open mem file");
+            perror_msg_and_die("Open mem file");
             return _UPT_accessors.access_mem(as, addr, val, write, arg);
         }
         unsigned long region_size = region->end_addr - region->start_addr;
@@ -174,7 +174,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
 
         /* start read from stack location */
         if (lseek(mem_fd, region->start_addr, SEEK_SET) < 0) {
-            perror_msg("Lseek mem");
+            perror_msg_and_die("Lseek mem");
             close(mem_fd);
             free(region->data);
             region->data = NULL;
@@ -182,7 +182,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
         }
 
         if (read(mem_fd, region->data, region_size) < 0) {
-            perror_msg("Read mem");
+            perror_msg_and_die("Read mem");
             close(mem_fd);
             free(region->data);
             region->data = NULL;
