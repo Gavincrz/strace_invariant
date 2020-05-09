@@ -54,6 +54,8 @@ struct proc_info
     char mem_path[64];
     int num_regions;
     struct mem_region regions[MAX_REGIONS]; // create a max region, assume not excess
+    FILE* map_fp;
+    int mem_fd;
 
 };
 
@@ -66,6 +68,7 @@ free_mem_region(struct proc_info* info)
         free(info->regions[i].data);
         info->regions[i].data = NULL;
     }
+    fclose(info->map_fp);
 }
 
 void
@@ -79,6 +82,13 @@ init_proc_info(struct proc_info* info, int pid)
     info->num_regions = 0;
     perror_msg("size of regions = %ld", sizeof(info->regions));
     memset(&(info->regions), 0, sizeof(info->regions));
+
+    info->map_fp = fopen(info->map_path, "r");
+    if (!info->map_fp) {
+        perror("Open maps");
+        return;
+    }
+
 }
 
 int
@@ -98,17 +108,12 @@ find_mem_region(struct proc_info* info, unw_word_t addr)
 void
 get_mem_region_addr(struct proc_info* info)
 {
-    FILE* map_fp = fopen(info->map_path, "r");
-    if (!map_fp) {
-        perror("Open maps");
-        return;
-    }
-
+    rewind(info->map_fp);
     // parsing maps file, find stack address range
     ssize_t line_size;
     char *line_buf = NULL;
     size_t line_buf_size = 0;
-    line_size = getline(&line_buf, &line_buf_size, map_fp);
+    line_size = getline(&line_buf, &line_buf_size, info->map_fp);
     char *ret;
 
     /* get number of regions first time */
@@ -141,17 +146,11 @@ get_mem_region_addr(struct proc_info* info)
             region_count++;
         }
         /* Get the next line */
-        line_size = getline(&line_buf, &line_buf_size, map_fp);
+        line_size = getline(&line_buf, &line_buf_size, info->map_fp);
     }
     info->num_regions = region_count;
     free(line_buf);
     line_buf = NULL;
-    fclose(map_fp);
-
-
-//    for (int i = 0; i < info->num_regions; i++) {
-//        perror_msg("0x%lx - 0x%lx", info->regions[i].start_addr, info->regions[i].end_addr);
-//    }
 }
 
 int
