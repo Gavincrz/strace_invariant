@@ -43,6 +43,7 @@ struct mem_region
 {
     unsigned long start_addr;
     unsigned long end_addr;
+    bool writable;
     void* data;
 };
 
@@ -53,10 +54,9 @@ struct proc_info
     char map_path[64]; // even they already saved in UPT_info, have no access to it
     char mem_path[64];
     int num_regions;
-    struct mem_region regions[MAX_REGIONS]; // create a max region, assume not excess
     FILE* map_fp;
     int mem_fd;
-
+    struct mem_region regions[MAX_REGIONS]; // create a max region, assume not excess
 };
 
 
@@ -68,7 +68,15 @@ free_mem_region(struct proc_info* info)
         free(info->regions[i].data);
         info->regions[i].data = NULL;
     }
+    info->num_regions = 0;
+}
+
+void
+destroy_proc_info(struct proc_info* info)
+{
+    free_mem_region(info);
     fclose(info->map_fp);
+    close(info->mem_fd);
 }
 
 void
@@ -85,8 +93,13 @@ init_proc_info(struct proc_info* info, int pid)
 
     info->map_fp = fopen(info->map_path, "r");
     if (!info->map_fp) {
-        perror("Open maps");
+        perror_msg_and_die("Open maps");
         return;
+    }
+
+    info->mem_fd = open(info->mem_path, O_RDONLY);
+    if (info->mem_fd < 0) {
+        perror_msg_and_die("Open mem file");
     }
 
 }
@@ -106,6 +119,18 @@ find_mem_region(struct proc_info* info, unw_word_t addr)
 }
 
 void
+free_writable_region(struct proc_info* info)
+{
+    for (int i = 0; i < MAX_REGIONS; i++)
+    {
+        if (info->regions[i].writable){
+            free(info->regions[i].data);
+            info->regions[i].data = NULL;
+        }
+    }
+}
+
+void
 get_mem_region_addr(struct proc_info* info)
 {
     rewind(info->map_fp);
@@ -114,6 +139,20 @@ get_mem_region_addr(struct proc_info* info)
     char *line_buf = NULL;
     size_t line_buf_size = 0;
     line_size = getline(&line_buf, &line_buf_size, info->map_fp);
+
+    // means we need to reopen the file
+    if (line_size < 0) {
+        fclose(info->map_fp);
+        info->map_fp = fopen(info->map_path, "r");
+        if (!info->map_fp) {
+            perror_msg_and_die("Open maps");
+            return;
+        }
+        // redo getline
+        line_size = getline(&line_buf, &line_buf_size, info->map_fp);
+    }
+
+
     char *ret;
 
     /* get number of regions first time */
@@ -128,26 +167,28 @@ get_mem_region_addr(struct proc_info* info)
             }
 
             char* writable = strstr(line_buf, " rw"); // check if the region is writable, if not, do not free the mem region
+            info->regions[region_count].writable = (bool)writable;
             unsigned long start_addr, end_addr;
             /* parsing and get the address */
             char * addr_str = strtok(line_buf, " ");
             sscanf(addr_str, "%lx-%lx", &(start_addr),
                    &(end_addr));
-            if (!(start_addr == info->regions[region_count].start_addr
-                    && end_addr == info->regions[region_count].end_addr && !writable)) {
-                // unless addr matches and region not writable, free the mem, otherwise keep it
+
+            if (info->regions[region_count].start_addr != start_addr
+            || info->regions[region_count].end_addr != end_addr || writable) {
+                // record the addr range
                 free(info->regions[region_count].data);
                 info->regions[region_count].data = NULL;
                 info->regions[region_count].start_addr = start_addr;
                 info->regions[region_count].end_addr = end_addr;
             }
 
-            /* check if address mathces*/
             region_count++;
         }
         /* Get the next line */
         line_size = getline(&line_buf, &line_buf_size, info->map_fp);
     }
+
     info->num_regions = region_count;
     free(line_buf);
     line_buf = NULL;
@@ -173,31 +214,47 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     // load the mem region if needed
     if (!region->data)
     {
-        int mem_fd = open(info->mem_path, O_RDONLY);
-        if (mem_fd < 0) {
-            perror_msg_and_die("Open mem file");
-            return _UPT_accessors.access_mem(as, addr, val, write, arg);
-        }
         unsigned long region_size = region->end_addr - region->start_addr;
         region->data = malloc(sizeof(char) * region_size);
 
         /* start read from stack location */
-        if (lseek(mem_fd, region->start_addr, SEEK_SET) < 0) {
+        if (lseek(info->mem_fd, region->start_addr, SEEK_SET) < 0) {
             perror_msg_and_die("Lseek mem");
-            close(mem_fd);
+            free(region->data);
+            region->data = NULL;
+            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+        }
+        int ret = read(info->mem_fd, region->data, region_size);
+        if (ret < 0) {
+            perror_msg_and_die("ret = %d, region_size = %ld", ret, region_size);
             free(region->data);
             region->data = NULL;
             return _UPT_accessors.access_mem(as, addr, val, write, arg);
         }
 
-        if (read(mem_fd, region->data, region_size) < 0) {
-            perror_msg_and_die("Read mem");
-            close(mem_fd);
-            free(region->data);
-            region->data = NULL;
-            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+        // need to reopen the file and re read
+        if (ret == 0) {
+            close(info->mem_fd);
+            info->mem_fd = open(info->mem_path, O_RDONLY);
+            if (info->mem_fd < 0) {
+                perror_msg_and_die("Open mem file");
+            }
+            if (lseek(info->mem_fd, region->start_addr, SEEK_SET) < 0) {
+                perror_msg_and_die("Lseek mem");
+                free(region->data);
+                region->data = NULL;
+                return _UPT_accessors.access_mem(as, addr, val, write, arg);
+            }
+            int ret = read(info->mem_fd, region->data, region_size);
+            if (ret < 0) {
+                perror_msg_and_die("ret = %d, region_size = %ld", ret, region_size);
+                free(region->data);
+                region->data = NULL;
+                return _UPT_accessors.access_mem(as, addr, val, write, arg);
+            }
+
         }
-        close(mem_fd);
+
     }
 
     // access the memory
@@ -246,7 +303,7 @@ static void
 tcb_fin(struct tcb *tcp)
 {
     if (proc_unwind) {
-        free_mem_region((struct proc_info *) tcp->unwind_ctx);
+        destroy_proc_info((struct proc_info *) tcp->unwind_ctx);
     }
 	_UPT_destroy(tcp->unwind_ctx);
 }
