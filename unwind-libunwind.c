@@ -38,6 +38,10 @@
 
 #define MAX_REGIONS 1024
 static unw_addr_space_t libunwind_as;
+static long num_print_stack = 0;
+static long num_uwn_step = 0;
+static long long print_stack_ms = 0;
+static long long step_ms = 0;
 
 struct mem_region
 {
@@ -57,6 +61,9 @@ struct proc_info
     FILE* map_fp;
     int mem_fd;
     struct mem_region regions[MAX_REGIONS]; // create a max region, assume not excess
+    int num_invocation;
+    int num_memaccess;
+    int num_read_lseek;
 };
 
 
@@ -77,6 +84,10 @@ destroy_proc_info(struct proc_info* info)
     free_mem_region(info);
     fclose(info->map_fp);
     close(info->mem_fd);
+
+    // print some statics
+    perror_msg("==================, invocations = %d, mem_access= %d, read,lseek = %d",
+            info->num_invocation, info->num_memaccess, info->num_read_lseek);
 }
 
 void
@@ -212,8 +223,10 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     }
     struct mem_region* region = &(info->regions[index]);
     // load the mem region if needed
+    info->num_memaccess++;
     if (!region->data)
     {
+        info->num_read_lseek++;
         unsigned long region_size = region->end_addr - region->start_addr;
         region->data = malloc(sizeof(char) * region_size);
 
@@ -222,14 +235,14 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
             perror_msg_and_die("Lseek mem");
             free(region->data);
             region->data = NULL;
-            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+            return -UNW_EINVAL;
         }
         int ret = read(info->mem_fd, region->data, region_size);
         if (ret < 0) {
             perror_msg_and_die("ret = %d, region_size = %ld", ret, region_size);
             free(region->data);
             region->data = NULL;
-            return _UPT_accessors.access_mem(as, addr, val, write, arg);
+            return -UNW_EINVAL;
         }
 
         // need to reopen the file and re read
@@ -243,18 +256,16 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
                 perror_msg_and_die("Lseek mem");
                 free(region->data);
                 region->data = NULL;
-                return _UPT_accessors.access_mem(as, addr, val, write, arg);
+                return -UNW_EINVAL;
             }
             int ret = read(info->mem_fd, region->data, region_size);
             if (ret < 0) {
                 perror_msg_and_die("ret = %d, region_size = %ld", ret, region_size);
                 free(region->data);
                 region->data = NULL;
-                return _UPT_accessors.access_mem(as, addr, val, write, arg);
+                return -UNW_EINVAL;
             }
-
         }
-
     }
 
     // access the memory
@@ -306,6 +317,9 @@ tcb_fin(struct tcb *tcp)
         destroy_proc_info((struct proc_info *) tcp->unwind_ctx);
     }
 	_UPT_destroy(tcp->unwind_ctx);
+
+    perror_msg("# print stack = %ld, times in micros = %lld", num_print_stack, print_stack_ms);
+    perror_msg("# step = %ld, times in micros = %lld", num_uwn_step, step_ms);
 }
 
 static void
@@ -337,6 +351,12 @@ print_stack_frame(struct tcb *tcp,
 {
 	unw_word_t ip;
 
+
+    struct timeval start, end;
+    num_print_stack++;
+    gettimeofday(&start, NULL);
+
+
 	if (unw_get_reg(cursor, UNW_REG_IP, &ip) < 0) {
 		perror_msg("cannot walk the stack of process %d", tcp->pid);
 		return -1;
@@ -358,6 +378,12 @@ print_stack_frame(struct tcb *tcp,
 			    *symbol_name,
 			    function_offset,
 			    true_offset);
+
+		// record time
+        gettimeofday(&end, NULL);
+        long seconds = (end.tv_sec - start.tv_sec);
+        long micros = ((seconds * 1000000) + end.tv_usec) - (start.tv_usec);
+        print_stack_ms += micros;
 
 		return 0;
 	}
@@ -395,13 +421,28 @@ walk(struct tcb *tcp,
         /* also reload the mem map */
         struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
         get_mem_region_addr(info);
+        info->num_invocation++;
 	}
 
 	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
 		if (print_stack_frame(tcp, call_action, error_action, data,
 				&cursor, &symbol_name, &symbol_name_size) < 0)
 			break;
-		if (unw_step(&cursor) <= 0)
+
+
+        struct timeval start, end;
+        num_uwn_step++;
+        gettimeofday(&start, NULL);
+
+		int sp_ret = unw_step(&cursor);
+
+        // record time
+        gettimeofday(&end, NULL);
+        long seconds = (end.tv_sec - start.tv_sec);
+        long micros = ((seconds * 1000000) + end.tv_usec) - (start.tv_usec);
+        step_ms += micros;
+
+		if (sp_ret <= 0)
 			break;
 	}
 	if (stack_depth >= 256)
