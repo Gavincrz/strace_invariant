@@ -64,8 +64,19 @@ struct proc_info
     int num_invocation;
     int num_memaccess;
     int num_read_lseek;
+    struct mmap_cache_entry_t * (*mmap_cache_search_void)(void*, unsigned long);
+    void* tcp;
+    void* image_cache;
+    int num_image_cache;
 };
 
+
+struct mmap_cache_entry_t *
+mmap_cache_search_void(void* data, unsigned long addr)
+{
+    struct tcb * tcp = (struct tcb *)data;
+    return mmap_cache_search(data, addr);
+}
 
 void
 free_mem_region(struct proc_info* info)
@@ -113,6 +124,8 @@ init_proc_info(struct proc_info* info, int pid)
         perror_msg_and_die("Open mem file");
     }
 
+    info->mmap_cache_search_void = mmap_cache_search_void;
+
 }
 
 int
@@ -127,7 +140,7 @@ find_mem_region(struct proc_info* info, unw_word_t addr)
         int mid = (upper + lower) / 2;
         struct mem_region *region = &(info->regions[mid]);
 
-        if (ip >= region->start_addr &&
+        if (addr >= region->start_addr &&
             addr < region->end_addr)
             return mid;
         else if (addr < region->start_addr)
@@ -348,8 +361,6 @@ tcb_init(struct tcb *tcp)
 		perror_msg_and_die("_UPT_create");
 
 	if (proc_unwind){
-        /* reallocate */
-        r = realloc(r, sizeof(struct proc_info));
         /* initialize the part used for proc mem */
         struct proc_info* info = (struct proc_info*)r;
         init_proc_info(info, tcp->pid);
@@ -469,6 +480,7 @@ walk(struct tcb *tcp,
         struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
         get_mem_region_addr_cache(tcp, info);
         info->num_invocation++;
+        info->tcp = tcp;
 	}
 
 	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
