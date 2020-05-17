@@ -118,15 +118,34 @@ init_proc_info(struct proc_info* info, int pid)
 int
 find_mem_region(struct proc_info* info, unw_word_t addr)
 {
-    for (int i = 0; i < MAX_REGIONS; i++)
-    {
-        if (addr >= info->regions[i].start_addr
-        && addr < info->regions[i].end_addr){
-            // address found
-            return i;
-        }
+
+    // use binary search
+    int lower = 0;
+    int upper = (int) tcp->mmap_cache->size - 1;
+
+    while (lower <= upper) {
+        int mid = (upper + lower) / 2;
+        struct mem_region *region = &(info->regions[mid]);
+
+        if (ip >= region->start_addr &&
+            ip < region->end_addr)
+            return mid;
+        else if (ip < region->start_addr)
+            upper = mid - 1;
+        else
+            lower = mid + 1;
     }
     return -1;
+
+//    for (int i = 0; i < MAX_REGIONS; i++)
+//    {
+//        if (addr >= info->regions[i].start_addr
+//        && addr < info->regions[i].end_addr){
+//            // address found
+//            return i;
+//        }
+//    }
+//    return -1;
 }
 
 void
