@@ -121,7 +121,7 @@ find_mem_region(struct proc_info* info, unw_word_t addr)
 
     // use binary search
     int lower = 0;
-    int upper = (int) tcp->mmap_cache->size - 1;
+    int upper = (int) info->num_regions - 1;
 
     while (lower <= upper) {
         int mid = (upper + lower) / 2;
