@@ -128,9 +128,9 @@ find_mem_region(struct proc_info* info, unw_word_t addr)
         struct mem_region *region = &(info->regions[mid]);
 
         if (ip >= region->start_addr &&
-            ip < region->end_addr)
+            addr < region->end_addr)
             return mid;
-        else if (ip < region->start_addr)
+        else if (addr < region->start_addr)
             upper = mid - 1;
         else
             lower = mid + 1;
