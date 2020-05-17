@@ -211,7 +211,7 @@ get_mem_region_addr_cache(struct tcb *tcp, struct proc_info* info)
     if (!tcp->mmap_cache){
         // load mem_region_addr self
         perror_msg("mmap_cache is NULL, try read maps file again!");
-        get_mem_region_addr(struct proc_info* info);
+        get_mem_region_addr(info);
         return;
     }
 
