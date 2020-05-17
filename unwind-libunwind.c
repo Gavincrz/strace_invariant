@@ -142,6 +142,33 @@ free_writable_region(struct proc_info* info)
 }
 
 void
+get_mem_region_addr_cache(struct tcb *tcp, struct proc_info* info)
+{
+    if (!tcp->mmap_cache){
+        // load mem_region_addr self
+        perror_msg("mmap_cache is NULL, try read maps file again!");
+        get_mem_region_addr(struct proc_info* info);
+        return;
+    }
+
+    for (int i = 0; i < tcp->mmap_cache->size; i++){
+        struct mmap_cache_entry_t *entry = &tcp->mmap_cache->entry[i];
+        // update proc_info, if address not match or is writable
+        if (info->regions[i].start_addr != entry->start_addr
+            || info->regions[i].end_addr != entry->end_addr
+            || entry->protections & MMAP_CACHE_PROT_WRITABLE) {
+            // record the addr range
+            free(info->regions[i].data);
+            info->regions[i].data = NULL;
+            info->regions[i].start_addr = start_addr;
+            info->regions[i].end_addr = end_addr;
+        }
+    }
+
+    info->num_regions = tcp->mmap_cache->size;
+}
+
+void
 get_mem_region_addr(struct proc_info* info)
 {
     rewind(info->map_fp);
@@ -420,7 +447,7 @@ walk(struct tcb *tcp,
 	if (proc_unwind) {
         /* also reload the mem map */
         struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
-        get_mem_region_addr(info);
+        get_mem_region_addr_cache(tcp, info);
         info->num_invocation++;
 	}
 
