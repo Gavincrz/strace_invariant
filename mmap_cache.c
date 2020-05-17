@@ -96,11 +96,11 @@ delete_mmap_cache(struct tcb *tcp, const char *caller)
 extern enum mmap_cache_rebuild_result
 mmap_cache_rebuild_if_invalid(struct tcb *tcp, const char *caller)
 {
-//	if (tcp->mmap_cache
-//	    && tcp->mmap_cache->generation != mmap_cache_generation)
-//		delete_mmap_cache(tcp, caller);
+	if (tcp->mmap_cache
+	    && tcp->mmap_cache->generation != mmap_cache_generation)
+		delete_mmap_cache(tcp, caller);
 
-    delete_mmap_cache(tcp, caller);
+//    delete_mmap_cache(tcp, caller);
 
 	if (tcp->mmap_cache)
 		return MMAP_CACHE_REBUILD_READY;
