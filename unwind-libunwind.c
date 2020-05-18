@@ -75,7 +75,6 @@ struct proc_info
 struct mmap_cache_entry_t *
 mmap_cache_search_void(void* data, unsigned long addr)
 {
-    struct tcb * tcp = (struct tcb *)data;
     return mmap_cache_search(data, addr);
 }
 
@@ -344,9 +343,6 @@ init(void)
 	proc_accessors.access_mem = _proc_access_mem;
 	libunwind_as = unw_create_addr_space(&proc_accessors, 0);
 
-    else{
-        libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
-    }
 	if (!libunwind_as)
 		error_msg_and_die("failed to create address space"
 				  " for stack tracing");
