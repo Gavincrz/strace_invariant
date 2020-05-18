@@ -68,6 +68,7 @@ struct proc_info
     void* tcp;
     void* image_cache;
     int num_image_cache;
+    bool update; // check if file has been updated
 };
 
 
@@ -481,6 +482,7 @@ walk(struct tcb *tcp,
         get_mem_region_addr_cache(tcp, info);
         info->num_invocation++;
         info->tcp = tcp;
+        info->update = true;
 	}
 
 	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
