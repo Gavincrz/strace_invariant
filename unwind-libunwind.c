@@ -357,6 +357,7 @@ tcb_init(struct tcb *tcp)
 	if (!r)
 		perror_msg_and_die("_UPT_create");
 
+	r = realloc(sizeof(struct proc_info*));
 	/* initialize the part used for proc mem */
 	struct proc_info* info = (struct proc_info*)r;
 	init_proc_info(info, tcp->pid);
@@ -475,7 +476,7 @@ walk(struct tcb *tcp,
 	get_mem_region_addr_cache(tcp, info);
 	info->num_invocation++;
 	info->tcp = tcp;
-	info->update = true;
+
 
 
 	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
@@ -510,7 +511,7 @@ tcb_walk(struct tcb *tcp,
 	 unwind_call_action_fn call_action,
 	 unwind_error_action_fn error_action,
 	 void *data)
-{
+{   struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
 	switch (mmap_cache_rebuild_if_invalid(tcp, __func__)) {
 		case MMAP_CACHE_REBUILD_RENEWED:
 			/*
@@ -518,7 +519,9 @@ tcb_walk(struct tcb *tcp,
 			 * Called when mmap cache subsystem detects a
 			 * change of tracee memory mapping.
 			 */
+            info->update = true;
 			unw_flush_cache(libunwind_as, 0, 0);
+
 			ATTRIBUTE_FALLTHROUGH;
 		case MMAP_CACHE_REBUILD_READY:
 			walk(tcp, call_action, error_action, data);
