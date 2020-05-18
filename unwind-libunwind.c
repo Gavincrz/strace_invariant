@@ -339,11 +339,11 @@ static void
 init(void)
 {
 	mmap_cache_enable();
-	if (proc_unwind) {
-        unw_accessors_t proc_accessors = _UPT_accessors;
-        proc_accessors.access_mem = _proc_access_mem;
-        libunwind_as = unw_create_addr_space(&proc_accessors, 0);
-	}
+
+	unw_accessors_t proc_accessors = _UPT_accessors;
+	proc_accessors.access_mem = _proc_access_mem;
+	libunwind_as = unw_create_addr_space(&proc_accessors, 0);
+
     else{
         libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
     }
@@ -361,20 +361,18 @@ tcb_init(struct tcb *tcp)
 	if (!r)
 		perror_msg_and_die("_UPT_create");
 
-	if (proc_unwind){
-        /* initialize the part used for proc mem */
-        struct proc_info* info = (struct proc_info*)r;
-        init_proc_info(info, tcp->pid);
-	}
+	/* initialize the part used for proc mem */
+	struct proc_info* info = (struct proc_info*)r;
+	init_proc_info(info, tcp->pid);
+
 	return r;
 }
 
 static void
 tcb_fin(struct tcb *tcp)
 {
-    if (proc_unwind) {
-        destroy_proc_info((struct proc_info *) tcp->unwind_ctx);
-    }
+    destroy_proc_info((struct proc_info *) tcp->unwind_ctx);
+
 	_UPT_destroy(tcp->unwind_ctx);
 
     perror_msg("# print stack = %ld, times in micros = %lld", num_print_stack, print_stack_ms);
@@ -476,14 +474,13 @@ walk(struct tcb *tcp,
 	if (unw_init_remote(&cursor, libunwind_as, tcp->unwind_ctx) < 0)
 		perror_func_msg_and_die("cannot initialize libunwind");
 
-	if (proc_unwind) {
-        /* also reload the mem map */
-        struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
-        get_mem_region_addr_cache(tcp, info);
-        info->num_invocation++;
-        info->tcp = tcp;
-        info->update = true;
-	}
+	/* also reload the mem map */
+	struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
+	get_mem_region_addr_cache(tcp, info);
+	info->num_invocation++;
+	info->tcp = tcp;
+	info->update = true;
+
 
 	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
 		if (print_stack_frame(tcp, call_action, error_action, data,

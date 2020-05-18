@@ -69,7 +69,6 @@ extern char *optarg;
 static FILE *invf;
 bool should_tamper = false;
 bool fuzz_valid = false;
-bool proc_unwind = false;
 int skip_count = 0;
 char *accept_syscall = NULL;
 char *record_file = NULL; // output syscall sequence to it
@@ -1669,7 +1668,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "kn:NQ:Z"
+	    "kn:NQ:"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
@@ -1758,9 +1757,6 @@ init(int argc, char *argv[])
 		case 'Q':
 		    accept_hash = string_to_ulong(optarg);
             break;
-		case 'Z':
-		    proc_unwind = true;
-		    break;
 #endif
 		case 'K':
 		    fuzz_config_fname = optarg;
