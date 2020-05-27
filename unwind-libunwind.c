@@ -357,7 +357,7 @@ tcb_init(struct tcb *tcp)
 	if (!r)
 		perror_msg_and_die("_UPT_create");
 
-	r = realloc(sizeof(struct proc_info*));
+	r = realloc(r, sizeof(struct proc_info));
 	/* initialize the part used for proc mem */
 	struct proc_info* info = (struct proc_info*)r;
 	init_proc_info(info, tcp->pid);
