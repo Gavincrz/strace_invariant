@@ -722,10 +722,9 @@ syscall_entering_finish(struct tcb *tcp, int res)
 	/* Measure the entrance time as late as possible to avoid errors. */
 	if ((Tflag || cflag) && !filtered(tcp))
 		clock_gettime(CLOCK_MONOTONIC, &tcp->etime);
-    uint32_t hash = 0;
 #ifdef ENABLE_STACKTRACE
     if (cov_enabled)
-        hash = unwind_tcb_output(tcp, false);
+        tcp->stack_hash = unwind_tcb_output(tcp, false);
 #endif
 
     // if it is the accept sycall, send signal to fuzzer_pid
@@ -733,17 +732,17 @@ syscall_entering_finish(struct tcb *tcp, int res)
         && fuzzer_pid > 0
         && !accept_called /* only send signal once*/
         && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
-        && ((cov_enabled && accept_hash > 0 && accept_hash == hash) || (accept_hash == 0))){
+        && ((cov_enabled && accept_hash > 0 && accept_hash == tcp->stack_hash) || (accept_hash == 0))){
         fprintf(stderr, "sending signal %d to parent script, parent pid %d\n",
                 SIGRTMAX-7, fuzzer_pid);
         kill(fuzzer_pid, SIGRTMAX-7);
         accept_called = true;
     }
 
-    if (accept_syscall != NULL && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
-        && hash != 0) {
-        fprintf(stderr, "accept hash = %u, recorded hash = %u, equal=%d", hash, accept_hash, hash==accept_hash);
-    }
+//    if (accept_syscall != NULL && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
+//        && hash != 0) {
+//        fprintf(stderr, "accept hash = %u, recorded hash = %u, equal=%d", hash, accept_hash, hash==accept_hash);
+//    }
 }
 
 /* Returns:

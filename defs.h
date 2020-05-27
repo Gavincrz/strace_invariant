@@ -212,6 +212,14 @@ struct inject_opts {
 	struct inject_data data;
 };
 
+typedef struct ref_entry {
+    char syscallname[40];
+    uint32_t stack_hash;
+    int field_index;
+    long value;
+    int min_or_max; // -1 min, 0 use value instead, 1 max
+} ref_entry;
+
 #define MAX_ERRNO_VALUE			4095
 
 /* Trace Control Block */
@@ -249,6 +257,7 @@ struct tcb {
 #ifdef ENABLE_STACKTRACE
 	void *unwind_ctx;
 	struct unwind_queue_t *unwind_queue;
+	uint32_t stack_hash;
 #endif
 };
 
@@ -332,7 +341,9 @@ extern bool accept_called;
 extern int rand_fd;
 extern bool cov_test;
 extern uint32_t accept_hash;
-
+extern bool recursive_fuzz;
+extern ref_entry fuzz_reference[100];
+extern int reference_count;
 extern const struct xlat addrfams[];
 
 /** Protocol hardware identifiers array, sorted, defined in sockaddr.c. */

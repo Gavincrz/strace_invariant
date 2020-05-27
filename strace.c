@@ -84,6 +84,12 @@ bool accept_called = false;
 int rand_fd = -1;
 bool cov_test = false;
 
+int reference_count = 0;
+bool recursive_fuzz = false;
+char *reference_file = NULL;
+#define MAX_FUZZ_REF 100
+ref_entry fuzz_reference[MAX_FUZZ_REF];
+
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;
@@ -1670,7 +1676,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "kn:NQ:"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1725,6 +1731,11 @@ init(int argc, char *argv[])
 			break;
 		case 'G':
 		    should_tamper = true;
+		    break;
+		case 'R':
+		    // recursive fuzzing, should pass a reference file
+            recursive_fuzz = true;
+            reference_file = optarg;
 		    break;
 		case 'h':
 			usage();
@@ -1887,6 +1898,8 @@ init(int argc, char *argv[])
         close(fd);
 	}
 
+
+
 	if (cov_file != NULL) {
         int fd = open(cov_file, O_CREAT|O_RDWR, 0666);
         if (fd == -1) {
@@ -1900,6 +1913,70 @@ init(int argc, char *argv[])
         if (rand_fd < 0) {
             perror_msg_and_die("unable to open random file");
         }
+    }
+
+    if (recursive_fuzz && reference_file != NULL) {
+        /* parsing the reference file */
+        FILE* fp = fopen(reference_file, "r");
+        if (!fp) {
+            perror_msg_and_die("failed to open reference file");
+            return;
+        }
+        ssize_t line_size;
+        char *line_buf = NULL;
+        size_t line_buf_size = 0;
+        line_size = getline(&line_buf, &line_buf_size, fp);
+
+        int ref_count = 0;
+        char syscallname[100], hash_str[100], value[100];
+        int field_index;
+        while (line_size > 0)
+        {
+            if (ref_count >= MAX_FUZZ_REF) {
+                perror_msg_and_die("ref_count reach max ref count!");
+            }
+            sscanf(line_buf, "%s %s %d %s", syscallname, hash_str, &field_index, value);
+            // store the syscallname
+            strncpy(fuzz_reference[ref_count].syscallname, syscallname, 39);
+            // store the hash
+            fuzz_reference[ref_count].stack_hash = string_to_ulong(hash_str);
+            // store the field_index
+            fuzz_reference[ref_count].field_index = field_index;
+            // store the value
+            if (strcmp(value, 'MIN') == 0) {
+                fuzz_reference[ref_count].min_or_max = -1;
+            }
+            else if (strcmp(value, 'MAX') == 0) {
+                fuzz_reference[ref_count].min_or_max = 1;
+            }
+            else {
+                fuzz_reference[ref_count].min_or_max = 0;
+                fuzz_reference[ref_count].value = string_to_long(value);
+            }
+            /* Get the next line */
+            line_size = getline(&line_buf, &line_buf_size, fp);
+            ref_count++;
+        }
+
+        reference_count = ref_count;
+        free(line_buf);
+        line_buf = NULL;
+
+        // print out the result to show correctness
+        for (int i = 0; i < reference_count; i++) {
+            fprintf(stderr, "%s %lu %d " fuzz_reference[i].syscallname,
+                    fuzz_reference[i].stack_hash, fuzz_reference[i].field_index);
+            if (fuzz_reference[i].min_or_max == 0) {
+                fprintf(stderr, "%ld\n", fuzz_reference[i].value);
+            }
+            if (fuzz_reference[i].min_or_max == -1) {
+                fprintf(stderr, "%MIN\n");
+            }
+            if (fuzz_reference[i].min_or_max == 1) {
+                fprintf(stderr, "%MAX\n");
+            }
+        }
+        error_msg_and_die("testtest\n");
     }
 
 	/* parsing the config file name */
