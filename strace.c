@@ -1943,15 +1943,15 @@ init(int argc, char *argv[])
             // store the field_index
             fuzz_reference[ref_count].field_index = field_index;
             // store the value
-            if (strcmp(value, 'MIN') == 0) {
+            if (strcmp(value, "MIN") == 0) {
                 fuzz_reference[ref_count].min_or_max = -1;
             }
-            else if (strcmp(value, 'MAX') == 0) {
+            else if (strcmp(value, "MAX") == 0) {
                 fuzz_reference[ref_count].min_or_max = 1;
             }
             else {
                 fuzz_reference[ref_count].min_or_max = 0;
-                fuzz_reference[ref_count].value = string_to_long(value);
+                fuzz_reference[ref_count].value = strtol(value, NULL, 10);
             }
             /* Get the next line */
             line_size = getline(&line_buf, &line_buf_size, fp);
@@ -1964,7 +1964,7 @@ init(int argc, char *argv[])
 
         // print out the result to show correctness
         for (int i = 0; i < reference_count; i++) {
-            fprintf(stderr, "%s %lu %d " fuzz_reference[i].syscallname,
+            fprintf(stderr, "%s %lu %d ", fuzz_reference[i].syscallname,
                     fuzz_reference[i].stack_hash, fuzz_reference[i].field_index);
             if (fuzz_reference[i].min_or_max == 0) {
                 fprintf(stderr, "%ld\n", fuzz_reference[i].value);
