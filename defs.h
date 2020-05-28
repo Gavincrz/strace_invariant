@@ -1686,7 +1686,9 @@ scno_is_valid(kernel_ulong_t scno)
         size_t print_size = MIN(target.size, sizeof(long));\
         for (size_t i = 0; i < print_size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-            fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            if (fptr) {\
+                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            }\
         }\
         tprintf(" -> ");\
         if (fptr) {\
@@ -1747,11 +1749,20 @@ scno_is_valid(kernel_ulong_t scno)
         r_set target = rlist[ref->field_index];\
         if (record_file) {\
             fptr = fopen(record_file, "a+");\
-            fprintf(fptr, "%s: ", target.name);\
+            fprintf(fptr, "%s: ", target_name);\
+        }\
+        tprintf("\nmodified %s: ", target_name);\
+        size_t print_size = MIN(target.size, sizeof(long));\
+        for (size_t i = 0; i < print_size; i++) {\
+            tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+            if (fptr) {\
+                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            }\
+        }\
+        tprintf(" -> ");\
+        if (fptr) {\
             fprintf(fptr, " -> ");\
         }\
-        tprintf("\nmodified %s: ", target.name);\
-        tprintf(" -> ");\
         if (ref->min_or_max == 0) {\
             memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
         }\
@@ -1769,7 +1780,6 @@ scno_is_valid(kernel_ulong_t scno)
         if (ref->field_index == 0) {\
             tcp->ret_modified = 1;\
         }\
-        size_t print_size = MIN(target.size, sizeof(long));\
         for (size_t i = 0; i <print_size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
             if (fptr) {\
