@@ -74,11 +74,6 @@ SYS_FUNC(getuid)
 	return RVAL_DECODED;
 }
 
-FUZZ_FUNC(getuid)
-{
-    FUZZ_FUNC_RET_ONLY(getuid)
-}
-
 SYS_FUNC(setfsuid)
 {
 	printuid("", tcp->u_arg[0]);
@@ -91,16 +86,6 @@ SYS_FUNC(setuid)
 	printuid("", tcp->u_arg[0]);
 
 	return RVAL_DECODED;
-}
-
-FUZZ_FUNC(setuid)
-{
-    FUZZ_FUNC_RET_ONLY(setuid)
-}
-
-FUZZ_FUNC(setgid)
-{
-    FUZZ_FUNC_RET_ONLY(setgid)
 }
 
 static void
@@ -207,10 +192,6 @@ SYS_FUNC(setgroups)
 	return RVAL_DECODED;
 }
 
-FUZZ_FUNC(setgroups)
-{
-    FUZZ_FUNC_RET_ONLY(setgroups)
-}
 
 SYS_FUNC(getgroups)
 {
