@@ -189,7 +189,7 @@ SYS_FUNC(prlimit64)
 	return 0;
 }
 
-#define NUM_RET_PRLIMIT64 2
+#define NUM_RET_PRLIMIT64 3
 
 FUZZ_FUNC(prlimit64)
 {
@@ -205,7 +205,8 @@ FUZZ_FUNC(prlimit64)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_PRLIMIT64] = {{&ret, sizeof(int), "ret", 0, 0},
-                                      {&limitbuf, len, "old_limit", 0, 0}};
+                                      FUZZ_SET(limitbuf.rlim_cur, "rlim_cur"),
+                                      FUZZ_SET(limitbuf.rlim_max, "rlim_max")};
     COMMON_FUZZ
 
     tcp->u_rval = ret;
