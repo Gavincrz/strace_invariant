@@ -524,3 +524,9 @@ SYS_FUNC(pselect6)
 
 	return rc;
 }
+
+
+FUZZ_FUNC(getuid)
+{
+    FUZZ_FUNC_RET_ONLY(getuid)
+}
