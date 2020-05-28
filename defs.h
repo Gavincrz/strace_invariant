@@ -1739,7 +1739,7 @@ scno_is_valid(kernel_ulong_t scno)
         tprintf(" -> ");\
         fprintf(fptr, " -> ");\
         if (ref->min_or_max == 0) {\
-            *(long *)target.addr = ref->value;\
+            memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
         }\
         else if (ref->min_or_max == -1) {\
             memset(target.addr, 0x00, target.size);\
