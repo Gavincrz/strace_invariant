@@ -13,6 +13,11 @@ SYS_FUNC(getcwd)
 }
 
 #define NUM_RET_GETCWD 1
+FUZZ_FUNC(getcwd)
+{
+    FUZZ_FUNC_RET_ONLY(getcwd)
+}
+
 INV_FUNC(getcwd)
 {
 	static int *ibuf = NULL;

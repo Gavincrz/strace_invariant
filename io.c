@@ -264,6 +264,11 @@ SYS_FUNC(writev)
 	return RVAL_DECODED;
 }
 
+FUZZ_FUNC(writev)
+{
+    FUZZ_FUNC_RET_ONLY(writev)
+}
+
 #define NUM_RET_PREAD 1
 INV_FUNC(pread)
 {
