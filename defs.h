@@ -1661,11 +1661,14 @@ scno_is_valid(kernel_ulong_t scno)
         }\
     }\
     tcp->ret_modified = 1;\
-    FILE* fptr = fopen(record_file, "a+");\
-    fprintf(fptr, "  return: %ld -> %ld \n", ret,  tcp->u_rval);\
-    fclose(fptr);\
+    if (record_file) {\
+        FILE* fptr = fopen(record_file, "a+");\
+        fprintf(fptr, "  return: %ld -> %ld \n", ret,  tcp->u_rval);\
+        fclose(fptr);\
+    }\
 
 #define COMMON_FUZZ\
+    FILE* fptr = NULL;\
     if (ref == NULL) {\
         r_set target = rlist[ret_index];\
         char target_name[100];\
@@ -1675,15 +1678,19 @@ scno_is_valid(kernel_ulong_t scno)
         struct json_object *obj = syscall_fuzz_array[index].object;\
         struct json_object *ret_array;\
         struct json_object *ret_obj;\
-        FILE* fptr = fopen(record_file, "a+");\
+        if (record_file) {\
+            fptr = fopen(record_file, "a+");\
+            fprintf(fptr, "%s: ", target_name);\
+        }\
         tprintf("\nmodified %s: ", target_name);\
-        fprintf(fptr, "%s: ", target_name);\
         for (size_t i = 0; i < target.size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
             fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
         }\
         tprintf(" -> ");\
-        fprintf(fptr, " -> ");\
+        if (fptr) {\
+            fprintf(fptr, " -> ");\
+        }\
         if (tcp->flags & TCB_FUZZ_VALID) {\
             strcat(target_name, "_v");\
             if (json_object_object_get_ex(obj, target_name, &ret_array)){\
@@ -1725,19 +1732,25 @@ scno_is_valid(kernel_ulong_t scno)
         }\
         for (size_t i = 0; i < target.size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-            fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            if (fptr) {\
+                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            }\
         }\
         tprintf("\n");\
-        fprintf(fptr, "\n");\
-        fclose(fptr);\
+        if (fptr) {\
+            fprintf(fptr, "\n");\
+            fclose(fptr);\
+        }\
     }\
     else {\
         r_set target = rlist[ref->field_index];\
-        FILE* fptr = fopen(record_file, "a+");\
+        if (record_file) {\
+            fptr = fopen(record_file, "a+");\
+            fprintf(fptr, "%s: ", target.name);\
+            fprintf(fptr, " -> ");\
+        }\
         tprintf("\nmodified %s: ", target.name);\
-        fprintf(fptr, "%s: ", target.name);\
         tprintf(" -> ");\
-        fprintf(fptr, " -> ");\
         if (ref->min_or_max == 0) {\
             memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
         }\
@@ -1757,11 +1770,15 @@ scno_is_valid(kernel_ulong_t scno)
         }\
         for (size_t i = 0; i < target.size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-            fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            if (fptr) {\
+                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+            }\
         }\
         tprintf("\n");\
-        fprintf(fptr, "\n");\
-        fclose(fptr);\
+        if (fptr) {\
+            fprintf(fptr, "\n");\
+            fclose(fptr);\
+        }\
     }\
 
 
