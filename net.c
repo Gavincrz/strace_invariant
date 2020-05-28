@@ -1127,7 +1127,7 @@ FUZZ_FUNC(getsockopt)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKOPT] = {{&ret, sizeof(int), "ret", 0, 0},
-                                       {optval, saved, "optval", 0, 0}
+                                       {optval, saved, "optval", 0, 0},
                                        {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
     COMMON_FUZZ
 
