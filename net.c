@@ -1110,24 +1110,31 @@ void print_arg_trace_getsockopt(struct tcb *tcp)
     };
 }
 
-#define  NUM_RET_GETSOCKOPT 2
+#define  NUM_RET_GETSOCKOPT 3
 FUZZ_FUNC(getsockopt)
 {
     // pick one value to modify
     int ret_index = rand() % NUM_RET_GETSOCKOPT;
 
     // read the original data
-    socklen_t optlen;
+    socklen_t optlen, saved;
     tfetch_mem(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
+
+    saved = optlen;
+    void *optval = malloc(optlen);
+    tfetch_mem(tcp, tcp->u_arg[3], saved, optval);
+
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKOPT] = {{&ret, sizeof(int), "ret", 0, 0},
-                                  {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
+                                       {optval, saved, "optval", 0, 0}
+                                       {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
     COMMON_FUZZ
 
     // write back the value;
     tcp->u_rval = ret;
     vm_write_mem(tcp->pid, &optlen, tcp->u_arg[4], sizeof(socklen_t));
+    vm_write_mem(tcp->pid, optval, tcp->u_arg[3], saved);
 
     // modify return value
     if (ret_index == 0) {
