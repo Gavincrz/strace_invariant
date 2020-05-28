@@ -1749,9 +1749,9 @@ scno_is_valid(kernel_ulong_t scno)
         r_set target = rlist[ref->field_index];\
         if (record_file) {\
             fptr = fopen(record_file, "a+");\
-            fprintf(fptr, "%s: ", target_name);\
+            fprintf(fptr, "%s: ", target.name);\
         }\
-        tprintf("\nmodified %s: ", target_name);\
+        tprintf("\nmodified %s: ", target.name);\
         size_t print_size = MIN(target.size, sizeof(long));\
         for (size_t i = 0; i < print_size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
