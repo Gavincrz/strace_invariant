@@ -90,6 +90,11 @@ SYS_FUNC(epoll_ctl)
 	return RVAL_DECODED;
 }
 
+FUZZ_FUNC(epoll_ctl)
+{
+    FUZZ_FUNC_RET_ONLY(epoll_ctl)
+}
+
 void print_arg_trace_epoll_wait(struct tcb *tcp){
     printinvvar("epfd", PRINT_LD, tcp->u_arg[0]);
     printinvvar("events", PRINT_ADDR, tcp->u_arg[1]);

@@ -53,6 +53,11 @@ INV_FUNC(getgid)
     INV_FUNC_RET_ONLY(getgid)
 }
 
+FUZZ_FUNC(getgid)
+{
+    FUZZ_FUNC_RET_ONLY(getgid)
+}
+
 INV_FUNC(getuid)
 {
     INV_FUNC_RET_ONLY(getuid)

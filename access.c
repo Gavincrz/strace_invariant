@@ -25,6 +25,11 @@ SYS_FUNC(access)
 	return decode_access(tcp, 0);
 }
 
+FUZZ_FUNC(access)
+{
+    FUZZ_FUNC_RET_ONLY(access)
+}
+
 SYS_FUNC(faccessat)
 {
 	print_dirfd(tcp, tcp->u_arg[0]);

@@ -136,7 +136,12 @@ tprint_sock_type(unsigned int flags)
 
 FUZZ_FUNC(socket)
 {
-    FUZZ_FUNC_RET_ONLY(epoll_create)
+    FUZZ_FUNC_RET_ONLY(socket)
+}
+
+
+FUZZ_FUNC(connect){
+    FUZZ_FUNC_RET_ONLY(connect)
 }
 
 #define NUM_RET_SOCKET 1
@@ -1444,3 +1449,9 @@ SYS_FUNC(setsockopt)
 
 	return RVAL_DECODED;
 }
+
+FUZZ_FUNC(setsockopt)
+{
+    FUZZ_FUNC_RET_ONLY(setsockopt)
+}
+
