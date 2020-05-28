@@ -50,7 +50,7 @@ SYS_FUNC(sendfile64)
 	return 0;
 }
 
-#undef NUM_RET_SENDFILE 2
+#define NUM_RET_SENDFILE 2
 FUZZ_FUNC(sendfile64)
 {
     // pick one value to modify
