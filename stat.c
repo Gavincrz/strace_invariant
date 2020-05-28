@@ -66,6 +66,8 @@ FUZZ_FUNC(stat)
                                  FUZZ_SET(fetch_stat.st_atim, "st_atim"),
                                  FUZZ_SET(fetch_stat.st_mtim, "st_mtim"),
                                  FUZZ_SET(fetch_stat.st_ctim, "st_ctim")};
+    COMMON_FUZZ
+    /*
     r_set target = rlist[ret_index];
     char target_name[100];
     strcpy(target_name, target.name);
@@ -136,7 +138,7 @@ FUZZ_FUNC(stat)
     tprintf("\n");
     fprintf(fptr, "\n");
     fclose(fptr);
-
+*/
     // write back the value;
     tcp->u_rval = ret;
     vm_write_mem(tcp->pid, &fetch_stat, tcp->u_arg[1], len);
