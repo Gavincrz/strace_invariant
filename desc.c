@@ -530,3 +530,18 @@ FUZZ_FUNC(getuid)
 {
     FUZZ_FUNC_RET_ONLY(getuid)
 }
+
+FUZZ_FUNC(setuid)
+{
+    FUZZ_FUNC_RET_ONLY(setuid)
+}
+
+FUZZ_FUNC(setgid)
+{
+    FUZZ_FUNC_RET_ONLY(setgid)
+}
+
+FUZZ_FUNC(setgroups)
+{
+    FUZZ_FUNC_RET_ONLY(setgroups)
+}
