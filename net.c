@@ -140,7 +140,8 @@ FUZZ_FUNC(socket)
 }
 
 
-FUZZ_FUNC(connect){
+FUZZ_FUNC(connect)
+{
     FUZZ_FUNC_RET_ONLY(connect)
 }
 
