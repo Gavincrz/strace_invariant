@@ -201,6 +201,9 @@ FUZZ_FUNC(epoll_wait)
                                        FUZZ_SET_ARRAY(events[0].data.fd, "data",
                                                (int)maxevents, sizeof(struct epoll_event))};
 
+    COMMON_FUZZ
+
+    /*
     struct json_object *obj = syscall_fuzz_array[index].object;
     struct json_object *ret_array;
     struct json_object *ret_obj;
@@ -311,6 +314,7 @@ FUZZ_FUNC(epoll_wait)
     tprintf("modify %s\n", target_name);
     fprintf(fptr, "modify %s \n", target_name);
     fclose(fptr);
+*/
 
     // write back the value;
     tcp->u_rval = ret;
