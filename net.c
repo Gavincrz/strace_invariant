@@ -1120,7 +1120,7 @@ FUZZ_FUNC(getsockopt)
     socklen_t optlen, saved;
     tfetch_mem(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
 
-    saved = optlen;
+    saved = get_tcb_priv_ulong(tcp);
     void *optval = malloc(optlen);
     tfetch_mem(tcp, tcp->u_arg[3], saved, optval);
 
