@@ -1575,7 +1575,7 @@ scno_is_valid(kernel_ulong_t scno)
 
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
 #define INV_FUNC(syscall_name) void SYS_FUNC_NAME(inv_ ## syscall_name)(struct tcb *tcp, int count)
-#define FUZZ_FUNC(syscall_name) void SYS_FUNC_NAME(fuzz_ ## syscall_name)(struct tcb *tcp, int index)
+#define FUZZ_FUNC(syscall_name) void SYS_FUNC_NAME(fuzz_ ## syscall_name)(struct tcb *tcp, int index, ref_entry* ref)
 
 
 #define INV_FUNC_RET_ONLY(syscall_name)\

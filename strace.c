@@ -1970,13 +1970,12 @@ init(int argc, char *argv[])
                 fprintf(stderr, "%ld\n", fuzz_reference[i].value);
             }
             if (fuzz_reference[i].min_or_max == -1) {
-                fprintf(stderr, "%MIN\n");
+                fprintf(stderr, "MIN\n");
             }
             if (fuzz_reference[i].min_or_max == 1) {
-                fprintf(stderr, "%MAX\n");
+                fprintf(stderr, "MAX\n");
             }
         }
-        error_msg_and_die("testtest\n");
     }
 
 	/* parsing the config file name */
