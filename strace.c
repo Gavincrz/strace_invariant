@@ -1964,7 +1964,7 @@ init(int argc, char *argv[])
 
         // print out the result to show correctness
         for (int i = 0; i < reference_count; i++) {
-            fprintf(stderr, "%s %lu %d ", fuzz_reference[i].syscallname,
+            fprintf(stderr, "%s %u %d ", fuzz_reference[i].syscallname,
                     fuzz_reference[i].stack_hash, fuzz_reference[i].field_index);
             if (fuzz_reference[i].min_or_max == 0) {
                 fprintf(stderr, "%ld\n", fuzz_reference[i].value);

@@ -1046,76 +1046,94 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
             get_syscall_args(tcp);
             get_syscall_result(tcp);
 
-            bool should_skip_cov = false;
-            // check if we are running cov_test
-            // if so, we should not touch getpid(), openat(gcda)
-            // and following read(0), lseek(8), write(1), close(3), fcntl(72) on that fd
-            if (cov_test) {
-                if (tcp->scno == 39) // getpid
-                    should_skip_cov = true;
-                if (tcp->scno == 257) { // openat
-                    should_skip_cov = handle_cov_open(tcp);
-                }
-                if (tcp->scno == 72 || tcp->scno == 0
-                || tcp->scno == 8 || tcp->scno == 1 || tcp->scno == 3) {
-                    kernel_long_t fd = tcp->u_arg[0];
-                    int index = check_cov_fd_exist(fd);
-                    if (index != -1) {
-                        tprintf("skip syscall on cov fd: %ld, index: %d\n", fd, index);
-                        should_skip_cov = true;
-                        if (tcp->scno == 3) { // close
-                            remove_cov_fd(index);
-                            tprintf("remove cov fd from list\n");
-                        }
-                    }
-                }
-            }
-
-			int list_index = -1;
-
-            if (!should_skip_cov) {
+            if (recursive_fuzz) {
+                // check if current syscall matches
+                int ref_index = -1;
                 // check if syscall in target syscall list
-                for (int i = 0; i < num_fuzz_syscalls; i++) {
-                    if (!strcmp(syscall_fuzz_array[i].name, tcp->s_ent->sys_name)){
-                        list_index = i;
+                for (int i = 0; i < reference_count; i++) {
+                    if (!strcmp(fuzz_reference[i].syscallname, tcp->s_ent->sys_name)
+                        && (fuzz_reference[i].stack_hash == tcp->stack_hash)){
+                        ref_index = i;
                         break;
                     }
                 }
-            }
-            if (list_index != -1) {
-				int count = count_inv(tcp);
-				if (count >= skip_count) {
+                if (ref_index != -1) {
+                    // found
                     tcp->ret_modified = 0;
-
                     // record the syscall fuzzed
                     if (record_file != NULL)
                     {
                         // append the syscall to record file
                         FILE* fptr = fopen(record_file, "a+");
-                        fprintf(fptr, "count:%d syscall: %s\n", count, tcp->s_ent->sys_name);
+                        fprintf(fptr, "syscall: %s, hash: %u\n", tcp->s_ent->sys_name, tcp->stack_hash);
                         fclose(fptr);
                     }
                     // fuzz the syscall
-                    tcp->s_ent->fuzz_func(tcp, list_index, NULL);
+                    tcp->s_ent->fuzz_func(tcp, ref_index, &fuzz_reference[ref_index]);
                     if (tcp->ret_modified) { // set return value back
                         arch_set_success(tcp);
                     }
-				}
+                }
             }
 
-            /*
-            if (out_syscall_name != NULL && strcmp(out_syscall_name, tcp->s_ent->sys_name) == 0){
-                // this is the target system call, update count
-                FILE* fptr = fopen(OUT_COUNT_FILE, "w+");
-                fprintf(fptr, "%d\n", count);
-                fclose(fptr);
-            }
+            else {
+                bool should_skip_cov = false;
+                // check if we are running cov_test
+                // if so, we should not touch getpid(), openat(gcda)
+                // and following read(0), lseek(8), write(1), close(3), fcntl(72) on that fd
+                if (cov_test) {
+                    if (tcp->scno == 39) // getpid
+                        should_skip_cov = true;
+                    if (tcp->scno == 257) { // openat
+                        should_skip_cov = handle_cov_open(tcp);
+                    }
+                    if (tcp->scno == 72 || tcp->scno == 0
+                        || tcp->scno == 8 || tcp->scno == 1 || tcp->scno == 3) {
+                        kernel_long_t fd = tcp->u_arg[0];
+                        int index = check_cov_fd_exist(fd);
+                        if (index != -1) {
+                            tprintf("skip syscall on cov fd: %ld, index: %d\n", fd, index);
+                            should_skip_cov = true;
+                            if (tcp->scno == 3) { // close
+                                remove_cov_fd(index);
+                                tprintf("remove cov fd from list\n");
+                            }
+                        }
+                    }
+                }
 
-            tcp->s_ent->invariant_func(tcp, count);
-            if (tcp->ret_modified) { // set return value back
-                arch_set_success(tcp);
+                int list_index = -1;
+
+                if (!should_skip_cov) {
+                    // check if syscall in target syscall list
+                    for (int i = 0; i < num_fuzz_syscalls; i++) {
+                        if (!strcmp(syscall_fuzz_array[i].name, tcp->s_ent->sys_name)){
+                            list_index = i;
+                            break;
+                        }
+                    }
+                }
+                if (list_index != -1) {
+                    int count = count_inv(tcp);
+                    if (count >= skip_count) {
+                        tcp->ret_modified = 0;
+
+                        // record the syscall fuzzed
+                        if (record_file != NULL)
+                        {
+                            // append the syscall to record file
+                            FILE* fptr = fopen(record_file, "a+");
+                            fprintf(fptr, "count:%d syscall: %s\n", count, tcp->s_ent->sys_name);
+                            fclose(fptr);
+                        }
+                        // fuzz the syscall
+                        tcp->s_ent->fuzz_func(tcp, list_index, NULL);
+                        if (tcp->ret_modified) { // set return value back
+                            arch_set_success(tcp);
+                        }
+                    }
+                }
             }
-            */
         }
     }
 	return 0;

@@ -250,6 +250,7 @@ struct tcb {
     int ret_modified; /* indicate if the return value is altered */
 	struct mmap_cache_t *mmap_cache;
     kernel_ulong_t pc;
+    uint32_t stack_hash;
 #ifdef HAVE_LINUX_KVM_H
 	struct vcpu_info *vcpu_info_list;
 #endif
@@ -257,7 +258,6 @@ struct tcb {
 #ifdef ENABLE_STACKTRACE
 	void *unwind_ctx;
 	struct unwind_queue_t *unwind_queue;
-	uint32_t stack_hash;
 #endif
 };
 
@@ -1602,113 +1602,168 @@ scno_is_valid(kernel_ulong_t scno)
 
 #define FUZZ_FUNC_RET_ONLY(syscall_name)\
     kernel_long_t ret = tcp->u_rval;\
-    struct json_object *obj = syscall_fuzz_array[index].object;\
-    struct json_object *ret_array;\
-    struct json_object *ret_obj;\
-    int n_ret = 0;\
-    if (tcp->flags & TCB_FUZZ_VALID) {\
-        if (json_object_object_get_ex(obj, "ret_v", &ret_array)){\
-           n_ret = json_object_array_length(ret_array);\
-           if (n_ret > 0) {\
-               int rand_index = rand() % n_ret;\
-               ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-               tcp->u_rval = json_object_get_int(ret_obj);\
-           }\
+    if (ref == NULL) {\
+        struct json_object *obj = syscall_fuzz_array[index].object;\
+        struct json_object *ret_array;\
+        struct json_object *ret_obj;\
+        int n_ret = 0;\
+        if (tcp->flags & TCB_FUZZ_VALID) {\
+            if (json_object_object_get_ex(obj, "ret_v", &ret_array)){\
+               n_ret = json_object_array_length(ret_array);\
+               if (n_ret > 0) {\
+                   int rand_index = rand() % n_ret;\
+                   ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+                   tcp->u_rval = json_object_get_int(ret_obj);\
+               }\
+            }\
+            else tcp->u_rval = -(rand() % 132);\
         }\
-        else tcp->u_rval = -(rand() % 132);\
-    }\
-    else {\
-        if (json_object_object_get_ex(obj, "ret_i", &ret_array))\
-            n_ret = json_object_array_length(ret_array);\
-        int rand_index = rand() % (n_ret + 3);\
-        if (rand_index < n_ret){\
-            ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-            tcp->u_rval = json_object_get_int(ret_obj);\
-        }\
-        else if(rand_index == n_ret) {\
-            memset(&(tcp->u_rval), -1, sizeof(int));\
-            ((char*)&(tcp->u_rval))[sizeof(int)-1] = 0x7f;\
-        }\
-        else if(rand_index == n_ret + 1) {\
-            memset(&(tcp->u_rval), 0, sizeof(int));\
-            ((char*)&(tcp->u_rval))[sizeof(int)-1] = (char)0x80;\
-        }\
-        else if(rand_index == n_ret + 2) {\
-           if (read(rand_fd, &(tcp->u_rval), sizeof(int)) < 0) {\
-                tprintf("read random file failed");\
+        else {\
+            if (json_object_object_get_ex(obj, "ret_i", &ret_array))\
+                n_ret = json_object_array_length(ret_array);\
+            int rand_index = rand() % (n_ret + 3);\
+            if (rand_index < n_ret){\
+                ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+                tcp->u_rval = json_object_get_int(ret_obj);\
+            }\
+            else if(rand_index == n_ret) {\
+                memset(&(tcp->u_rval), -1, sizeof(int));\
+                ((char*)&(tcp->u_rval))[sizeof(int)-1] = 0x7f;\
+            }\
+            else if(rand_index == n_ret + 1) {\
+                memset(&(tcp->u_rval), 0, sizeof(int));\
+                ((char*)&(tcp->u_rval))[sizeof(int)-1] = (char)0x80;\
+            }\
+            else if(rand_index == n_ret + 2) {\
+               if (read(rand_fd, &(tcp->u_rval), sizeof(int)) < 0) {\
+                    tprintf("read random file failed");\
+                }\
             }\
         }\
     }\
+    else {\
+        if (ref->field_index != 0) {\
+            error_func_msg_and_die("filed index not equal to 0 for ret only syscall");\
+        }\
+        if (ref->min_or_max == 0) {\
+            tcp->u_rval = ref->value;\
+        }\
+        else if (ref->min_or_max == -1) {\
+            memset(&(tcp->u_rval), 0, sizeof(int));\
+            ((char*)&(tcp->u_rval))[sizeof(int)-1] = (char)0x80;\
+        }\
+        else if (ref->min_or_max == 1) {\
+            memset(&(tcp->u_rval), -1, sizeof(int));\
+            ((char*)&(tcp->u_rval))[sizeof(int)-1] = 0x7f;\
+        }\
+        else {\
+            error_func_msg_and_die("min_or_max field has value other than min max value");\
+        }\
+    }\
     tcp->ret_modified = 1;\
-    tprintf("modified return: %ld -> %ld \n", ret,  tcp->u_rval);\
     FILE* fptr = fopen(record_file, "a+");\
     fprintf(fptr, "  return: %ld -> %ld \n", ret,  tcp->u_rval);\
     fclose(fptr);\
 
 #define COMMON_FUZZ\
-    r_set target = rlist[ret_index];\
-    char target_name[100];\
-    strcpy(target_name, target.name);\
-    int num_input = 0;\
-    int max_index = 0;\
-    struct json_object *obj = syscall_fuzz_array[index].object;\
-    struct json_object *ret_array;\
-    struct json_object *ret_obj;\
-    FILE* fptr = fopen(record_file, "a+");\
-    tprintf("\nmodified %s: ", target_name);\
-    fprintf(fptr, "%s: ", target_name);\
-    for (size_t i = 0; i < target.size; i++) {\
-        tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
-    }\
-    tprintf(" -> ");\
-    fprintf(fptr, " -> ");\
-    if (tcp->flags & TCB_FUZZ_VALID) {\
-        strcat(target_name, "_v");\
-        if (json_object_object_get_ex(obj, target_name, &ret_array)){\
-            num_input = json_object_array_length(ret_array);\
+    if (ref == NULL) {\
+        r_set target = rlist[ret_index];\
+        char target_name[100];\
+        strcpy(target_name, target.name);\
+        int num_input = 0;\
+        int max_index = 0;\
+        struct json_object *obj = syscall_fuzz_array[index].object;\
+        struct json_object *ret_array;\
+        struct json_object *ret_obj;\
+        FILE* fptr = fopen(record_file, "a+");\
+        tprintf("\nmodified %s: ", target_name);\
+        fprintf(fptr, "%s: ", target_name);\
+        for (size_t i = 0; i < target.size; i++) {\
+            tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+            fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
         }\
-        max_index = num_input;\
-        if (max_index > 0) {\
+        tprintf(" -> ");\
+        fprintf(fptr, " -> ");\
+        if (tcp->flags & TCB_FUZZ_VALID) {\
+            strcat(target_name, "_v");\
+            if (json_object_object_get_ex(obj, target_name, &ret_array)){\
+                num_input = json_object_array_length(ret_array);\
+            }\
+            max_index = num_input;\
+            if (max_index > 0) {\
+                int rand_index = rand() % max_index;\
+                ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+                int value = json_object_get_int(ret_obj);\
+                memcpy(target.addr, &value, target.size);\
+            }\
+        }\
+        else {\
+            strcat(target_name, "_i");\
+            if (json_object_object_get_ex(obj, target_name, &ret_array)){\
+                num_input = json_object_array_length(ret_array);\
+            }\
+            max_index = num_input + 3;\
             int rand_index = rand() % max_index;\
-            ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-            int value = json_object_get_int(ret_obj);\
-            memcpy(target.addr, &value, target.size);\
+            if (rand_index < num_input) {\
+                ret_obj = json_object_array_get_idx(ret_array, rand_index);\
+                int value = json_object_get_int(ret_obj);\
+                memcpy(target.addr, &value, target.size);\
+            }\
+            else if (rand_index == num_input) {\
+                memset(target.addr, -1, target.size);\
+                ((char*)target.addr)[target.size-1] = 0x7f;\
+            }\
+            else if (rand_index == num_input + 1) {\
+                memset(target.addr, 0x00, target.size);\
+                ((char*)target.addr)[target.size-1] = (char)0x80;\
+            }\
+            else if (rand_index == num_input + 2) {\
+                if (read(rand_fd, target.addr, target.size) < 0) {\
+                    tprintf("read random file failed");\
+                }\
+            }\
         }\
+        for (size_t i = 0; i < target.size; i++) {\
+            tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+            fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+        }\
+        tprintf("\n");\
+        fprintf(fptr, "\n");\
+        fclose(fptr);\
     }\
     else {\
-        strcat(target_name, "_i");\
-        if (json_object_object_get_ex(obj, target_name, &ret_array)){\
-            num_input = json_object_array_length(ret_array);\
+        r_set target = rlist[ref->field_index];\
+        FILE* fptr = fopen(record_file, "a+");\
+        tprintf("\nmodified %s: ", target.name);\
+        fprintf(fptr, "%s: ", target.name);\
+        tprintf(" -> ");\
+        fprintf(fptr, " -> ");\
+        if (ref->min_or_max == 0) {\
+            *(long *)target.addr = ref->value;\
         }\
-        max_index = num_input + 3;\
-        int rand_index = rand() % max_index;\
-        if (rand_index < num_input) {\
-            ret_obj = json_object_array_get_idx(ret_array, rand_index);\
-            int value = json_object_get_int(ret_obj);\
-            memcpy(target.addr, &value, target.size);\
-        }\
-        else if (rand_index == num_input) {\
-            memset(target.addr, -1, target.size);\
-            ((char*)target.addr)[target.size-1] = 0x7f;\
-        }\
-        else if (rand_index == num_input + 1) {\
+        else if (ref->min_or_max == -1) {\
             memset(target.addr, 0x00, target.size);\
             ((char*)target.addr)[target.size-1] = (char)0x80;\
         }\
-        else if (rand_index == num_input + 2) {\
-            if (read(rand_fd, target.addr, target.size) < 0) {\
-                tprintf("read random file failed");\
-            }\
+        else if (ref->min_or_max == 1) {\
+            memset(target.addr, -1, target.size);\
+            ((char*)target.addr)[target.size-1] = 0x7f;\
         }\
+        else {\
+            error_func_msg_and_die("min_or_max field has value other than min max value");\
+        }\
+        if (ref->field_index == 0) {\
+            tcp->ret_modified = 1;\
+        }\
+        for (size_t i = 0; i < target.size; i++) {\
+            tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+            fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+        }\
+        tprintf("\n");\
+        fprintf(fptr, "\n");\
+        fclose(fptr);\
     }\
-    for (size_t i = 0; i < target.size; i++) {\
-        tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
-    }\
-    tprintf("\n");\
-    fprintf(fptr, "\n");\
-    fclose(fptr);\
+
 
 #define FUZZ_SET(field, name) {&(field), sizeof(field), name, 0, 0}
 #define FUZZ_SET_ARRAY(field, name, elem, dist) {&(field), sizeof(field), name, elem, dist}
