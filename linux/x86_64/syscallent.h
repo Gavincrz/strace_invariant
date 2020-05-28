@@ -38,7 +38,7 @@
 [ 37] = { 1,	0,		SEN(alarm),			"alarm"			},
 [ 38] = { 3,	0,		SEN(setitimer),			"setitimer"		},
 [ 39] = { 0,	PU|NF,		SEN_FUZZ(getpid),			"getpid"		},
-[ 40] = { 4,	TD|TN,		SEN(sendfile64),		"sendfile"		},
+[ 40] = { 4,	TD|TN,		SEN_FUZZ(sendfile64),		"sendfile"		},
 [ 41] = { 3,	TN,		SEN_FUZZ(socket),			"socket"		},
 [ 42] = { 3,	TN,		SEN_FUZZ(connect),			"connect"		},
 [ 43] = { 3,	TN,		SEN_FUZZ(accept),			"accept"		},

@@ -50,6 +50,31 @@ SYS_FUNC(sendfile64)
 	return 0;
 }
 
+#undef NUM_RET_SENDFILE 2
+FUZZ_FUNC(sendfile64)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_SENDFILE;
+
+    off_t offset;
+    // read the original data
+    tfetch_mem(tcp, tcp->u_arg[2], sizeof(off_t), &offset);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_SENDFILE] = {{&ret, sizeof(int), "ret", 0, 0},
+                                     {&offset, sizeof(off_t), "offset", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &offset, tcp->u_arg[2], sizeof(off_t));
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 SYS_FUNC(sendfile)
 {
 	if (entering(tcp)) {
