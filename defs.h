@@ -1683,7 +1683,7 @@ scno_is_valid(kernel_ulong_t scno)
             fprintf(fptr, "%s: ", target_name);\
         }\
         tprintf("\nmodified %s: ", target_name);\
-        int print_size = MIN(target.size, sizeof(long));\
+        size_t print_size = MIN(target.size, sizeof(long));\
         for (size_t i = 0; i < print_size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
             fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
@@ -1769,7 +1769,7 @@ scno_is_valid(kernel_ulong_t scno)
         if (ref->field_index == 0) {\
             tcp->ret_modified = 1;\
         }\
-        int print_size = MIN(target.size, sizeof(long));\
+        size_t print_size = MIN(target.size, sizeof(long));\
         for (size_t i = 0; i <print_size; i++) {\
             tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
             if (fptr) {\
