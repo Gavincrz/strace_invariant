@@ -100,7 +100,7 @@
 [ 99] = { 1,	0,		SEN_TRACE(sysinfo),			"sysinfo"		},
 [100] = { 1,	0,		SEN(times),			"times"			},
 [101] = { 4,	0,		SEN(ptrace),			"ptrace"		},
-[102] = { 0,	PU|NF,		SEN_FUZZ(getuid),			"getuid"		},
+[102] = { 0,	PU|NF,		SEN(getuid),			"getuid"		},
 [103] = { 3,	0,		SEN(syslog),			"syslog"		},
 [104] = { 0,	PU|NF,		SEN_FUZZ(getgid),			"getgid"		},
 [105] = { 1,	0,		SEN_FUZZ(setuid),			"setuid"		},
