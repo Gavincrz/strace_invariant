@@ -173,7 +173,7 @@ INV_FUNC(poll)
 			unsigned int len = sizeof(struct pollfd) * nfds;
 			struct pollfd* fds = (struct pollfd *)malloc(len);
 
-			tfetch_mem(tcp, tcp->u_arg[1], len, fds);
+			tfetch_mem(tcp, tcp->u_arg[0], len, fds);
 
 			kernel_long_t ret = tcp->u_rval;
 			m_set mlist[NUM_RET_POLL] = {{fds, len, VARIABLE_NORMAL},\
@@ -186,10 +186,39 @@ INV_FUNC(poll)
 			}
 			// write back the value;
 			tcp->u_rval = ret;
-			vm_write_mem(tcp->pid, fds, tcp->u_arg[1], len);
+			vm_write_mem(tcp->pid, fds, tcp->u_arg[0], len);
 			free(fds);
 		}
 	}
+}
+
+
+FUZZ_FUNC(poll)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_POLL;
+
+    // read the original data
+    kernel_long_t ret = tcp->u_rval;
+    unsigned int nfds = nfds = tcp->u_arg[1];
+    unsigned int len = sizeof(struct pollfd) * nfds;
+    struct pollfd* fds = (struct pollfd *)malloc(len);
+
+    tfetch_mem(tcp, tcp->u_arg[0], len, fds);
+
+    r_set rlist[NUM_RET_POLL] = {{&ret, sizeof(int), "ret", 0, 0},
+                                 {fds, len, "fds", 0, 0}};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, fds, tcp->u_arg[0], len);
+    free(fds)
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
 }
 
 SYS_FUNC(poll)

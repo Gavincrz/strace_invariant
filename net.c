@@ -800,6 +800,34 @@ SYS_FUNC(socketpair)
 	return 0;
 }
 
+#define NUM_RET_SOCKETPAIR 2
+FUZZ_FUNC(socketpair)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_SOCKETPAIR;
+
+    // read the original data
+    kernel_long_t ret = tcp->u_rval;
+    int sv[2];
+    unsigned int len = sizeof(sv);
+    tfetch_mem(tcp, tcp->u_arg[3], len, &sv);
+
+    r_set rlist[NUM_RET_SOCKETPAIR] = {{&ret, sizeof(int), "ret", 0, 0},
+                                       FUZZ_SET_ARRAY(sv[0], "sv",
+                                                      2, sizeof(int))};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &sv, tcp->u_arg[3], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 #include "xlat/sock_options.h"
 #include "xlat/getsock_options.h"
 #include "xlat/setsock_options.h"

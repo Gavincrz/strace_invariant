@@ -77,6 +77,32 @@ INV_FUNC(sysinfo)
 	}
 }
 
+FUZZ_FUNC(sysinfo)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_SYSINFO;
+
+    // read the original data
+    kernel_long_t ret = tcp->u_rval;
+    unsigned int len = sizeof(struct sysinfo);
+    struct sysinfo fetch_info;
+    tfetch_mem(tcp, tcp->u_arg[0], len, &fetch_info);
+
+    r_set rlist[NUM_RET_SYSINFO] = {{&ret, sizeof(int), "ret", 0, 0},
+                                 {&fetch_info, len, "info", 0, 0}};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &fetch_info, tcp->u_arg[0], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 SYS_FUNC(sysinfo)
 {
 	sysinfo_t si;
