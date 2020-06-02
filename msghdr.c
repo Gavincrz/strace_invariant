@@ -511,3 +511,31 @@ INV_FUNC(recvmsg)
 
 	}
 }
+
+#undefNUM_RET_RECVMSG
+#define NUM_RET_RECVMSG 2
+FUZZ_FUNC(recvmsg)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_RECVMSG;
+
+    // read the original data
+    unsigned int len = sizeof(struct msghdr);
+    struct msghdr fetch_hdr;
+    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_hdr);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_RECVMSG] = {{&ret, sizeof(int), "ret", 0, 0},
+                                      FUZZ_SET(fetch_hdr.msg_controllen, "msg_controllen")};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &fetch_hdr, tcp->u_arg[1], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}

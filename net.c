@@ -701,6 +701,36 @@ FUZZ_FUNC(getsockname)
     }
 }
 
+FUZZ_FUNC(getpeername)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_GETSOCKNAME;
+
+    // read the original data
+    socklen_t addrlen, ulen;
+    ulen = get_tcb_priv_ulong(tcp);
+    void *buf = malloc(ulen);
+    tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
+    tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
+                                        {buf, ulen, "addr", 0, 0},
+                                        {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, buf, tcp->u_arg[1], ulen);
+    vm_write_mem(tcp->pid, &addrlen, tcp->u_arg[2], sizeof(socklen_t));
+    free(buf);
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
+
 static void
 printpair_fd(struct tcb *tcp, const int i0, const int i1)
 {
@@ -744,6 +774,11 @@ SYS_FUNC(pipe)
 #else
 	return do_pipe(tcp, -1);
 #endif
+}
+
+FUZZ_FUNC(pipe)
+{
+    FUZZ_FUNC_RET_ONLY(pipe)
 }
 
 SYS_FUNC(pipe2)

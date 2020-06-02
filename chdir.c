@@ -6,3 +6,9 @@ SYS_FUNC(chdir)
 
 	return RVAL_DECODED;
 }
+
+
+FUZZ_FUNC(chdir)
+{
+    FUZZ_FUNC_RET_ONLY(chdir)
+}

@@ -53,6 +53,11 @@ FUZZ_FUNC(getppid)
     FUZZ_FUNC_RET_ONLY(getppid)
 }
 
+FUZZ_FUNC(getpgrp)
+{
+    FUZZ_FUNC_RET_ONLY(getpgrp)
+}
+
 INV_FUNC(getgid)
 {
     INV_FUNC_RET_ONLY(getgid)
@@ -76,6 +81,16 @@ INV_FUNC(getegid)
 INV_FUNC(geteuid)
 {
     INV_FUNC_RET_ONLY(geteuid)
+}
+
+FUZZ_FUNC(geteuid)
+{
+    FUZZ_FUNC_RET_ONLY(geteuid)
+}
+
+FUZZ_FUNC(getegid)
+{
+    FUZZ_FUNC_RET_ONLY(getegid)
 }
 
 FUZZ_FUNC(close)
@@ -565,3 +580,19 @@ FUZZ_FUNC(chroot)
 {
     FUZZ_FUNC_RET_ONLY(chroot)
 }
+
+FUZZ_FUNC(setresuid)
+{
+    FUZZ_FUNC_RET_ONLY(setresuid)
+}
+
+FUZZ_FUNC(setresgid)
+{
+    FUZZ_FUNC_RET_ONLY(setresgid)
+}
+
+FUZZ_FUNC(getgroups)
+{
+    FUZZ_FUNC_RET_ONLY(getgroups)
+}
+

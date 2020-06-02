@@ -34,6 +34,11 @@
 #include "print_fields.h"
 #include <sys/utsname.h>
 
+FUZZ_FUNC(uname)
+{
+    FUZZ_FUNC_RET_ONLY(uname)
+}
+
 SYS_FUNC(uname)
 {
 	struct utsname uname;
