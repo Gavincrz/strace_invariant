@@ -813,8 +813,9 @@ FUZZ_FUNC(socketpair)
     tfetch_mem(tcp, tcp->u_arg[3], len, &sv);
 
     r_set rlist[NUM_RET_SOCKETPAIR] = {{&ret, sizeof(int), "ret", 0, 0},
-                                       FUZZ_SET_ARRAY(sv[0], "sv",
-                                                      2, sizeof(int))};
+                                       {&sv, len, "sv", 0, 0};
+
+    tprintf("\nsv[0]=%d, sv[1]=%d\n", sv[0], sv[1])
 
     COMMON_FUZZ
 
