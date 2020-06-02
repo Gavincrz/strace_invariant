@@ -214,7 +214,7 @@ FUZZ_FUNC(poll)
     // write back the value;
     tcp->u_rval = ret;
     vm_write_mem(tcp->pid, fds, tcp->u_arg[0], len);
-    free(fds)
+    free(fds);
     // modify return value
     if (ret_index == 0) {
         tcp->ret_modified = 1;
