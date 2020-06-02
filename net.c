@@ -480,6 +480,12 @@ INV_FUNC(sendto)
 	}
 }
 
+FUZZ_FUNC(sendto)
+{
+    FUZZ_FUNC_RET_ONLY(sendto)
+}
+
+
 
 
 SYS_FUNC(recv)

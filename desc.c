@@ -48,6 +48,11 @@ INV_FUNC(getppid)
     INV_FUNC_RET_ONLY(getppid)
 }
 
+FUZZ_FUNC(getppid)
+{
+    FUZZ_FUNC_RET_ONLY(getppid)
+}
+
 INV_FUNC(getgid)
 {
     INV_FUNC_RET_ONLY(getgid)
@@ -147,6 +152,11 @@ do_dup2(struct tcb *tcp, int flags_arg)
 INV_FUNC(dup2)
 {
     INV_FUNC_RET_ONLY(dup2)
+}
+
+FUZZ_FUNC(dup)
+{
+    FUZZ_FUNC_RET_ONLY(dup)
 }
 
 FUZZ_FUNC(dup2)
@@ -544,4 +554,14 @@ FUZZ_FUNC(setgid)
 FUZZ_FUNC(setgroups)
 {
     FUZZ_FUNC_RET_ONLY(setgroups)
+}
+
+FUZZ_FUNC(setsid)
+{
+    FUZZ_FUNC_RET_ONLY(setsid)
+}
+
+FUZZ_FUNC(chroot)
+{
+    FUZZ_FUNC_RET_ONLY(chroot)
 }

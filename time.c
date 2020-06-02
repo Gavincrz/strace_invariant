@@ -111,6 +111,36 @@ SYS_FUNC(nanosleep)
 	return 0;
 }
 
+#define NUM_RET_NANOSLEEP 3
+FUZZ_FUNC(nanosleep)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_NANOSLEEP;
+
+    // read the original data
+    unsigned int len = sizeof(struct timespec);
+    struct timespec fetch_rem;
+    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_rem);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_STAT] = {{&ret, sizeof(int), "ret", 0, 0},
+                                 FUZZ_SET(fetch_rem.tv_sec, "tv_sec"),
+                                 FUZZ_SET(fetch_rem.tv_nsec, "tv_nsec"),};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &fetch_rem, tcp->u_arg[1], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+
+}
+
+
 #include "xlat/itimer_which.h"
 
 SYS_FUNC(getitimer)
