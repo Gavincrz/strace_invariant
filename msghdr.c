@@ -512,7 +512,7 @@ INV_FUNC(recvmsg)
 	}
 }
 
-#undefNUM_RET_RECVMSG
+#undef NUM_RET_RECVMSG
 #define NUM_RET_RECVMSG 2
 FUZZ_FUNC(recvmsg)
 {
