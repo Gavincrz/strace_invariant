@@ -1053,11 +1053,13 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
                 for (int i = 0; i < reference_count; i++) {
                     if (!strcmp(fuzz_reference[i].syscallname, tcp->s_ent->sys_name)
                         && (fuzz_reference[i].stack_hash == tcp->stack_hash)){
+                        // increment the count
+                        fuzz_reference[i].count++;
                         ref_index = i;
                         break;
                     }
                 }
-                if (ref_index != -1) {
+                if (ref_index != -1 && fuzz_reference[ref_index].count <= repeat_max) {
                     // found
                     tcp->ret_modified = 0;
                     // record the syscall fuzzed

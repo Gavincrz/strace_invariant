@@ -89,6 +89,7 @@ bool recursive_fuzz = false;
 char *reference_file = NULL;
 #define MAX_FUZZ_REF 100
 ref_entry fuzz_reference[MAX_FUZZ_REF];
+int repeat_max = 3;
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -1953,6 +1954,7 @@ init(int argc, char *argv[])
                 fuzz_reference[ref_count].min_or_max = 0;
                 fuzz_reference[ref_count].value = strtol(value, NULL, 10);
             }
+            fuzz_reference[ref_count].count = 0;
             /* Get the next line */
             line_size = getline(&line_buf, &line_buf_size, fp);
             ref_count++;

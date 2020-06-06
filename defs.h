@@ -218,6 +218,7 @@ typedef struct ref_entry {
     int field_index;
     long value;
     int min_or_max; // -1 min, 0 use value instead, 1 max
+    int count; // number of time encountered
 } ref_entry;
 
 #define MAX_ERRNO_VALUE			4095
@@ -345,6 +346,7 @@ extern bool recursive_fuzz;
 extern ref_entry fuzz_reference[100];
 extern int reference_count;
 extern const struct xlat addrfams[];
+extern int repeat_max;
 
 /** Protocol hardware identifiers array, sorted, defined in sockaddr.c. */
 extern const struct xlat arp_hardware_types[];
