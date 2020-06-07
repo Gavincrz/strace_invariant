@@ -442,6 +442,11 @@ SYS_FUNC(sendmsg)
 	return RVAL_DECODED;
 }
 
+FUZZ_FUNC(sendmsg)
+{
+    FUZZ_FUNC_RET_ONLY(sendmsg)
+}
+
 SYS_FUNC(recvmsg)
 {
 	int msg_namelen;

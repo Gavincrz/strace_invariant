@@ -507,13 +507,36 @@ SYS_FUNC(recv)
 	return 0;
 }
 
-
+#define NUM_RET_RECVFROM 3
 FUZZ_FUNC(recvfrom)
 {
-    FUZZ_FUNC_RET_ONLY(recvfrom)
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_RECVFROM;
+
+    // read the original data
+    socklen_t addrlen, ulen;
+    ulen = get_tcb_priv_ulong(tcp);
+    void *buf = malloc(ulen);
+    tfetch_mem(tcp, tcp->u_arg[4], ulen, buf);
+    tfetch_mem(tcp, tcp->u_arg[5], sizeof(socklen_t), &addrlen);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_RECVFROM] = {{&ret, sizeof(int), "ret", 0, 0},
+                                   {buf, ulen, "addr", 0, 0},
+                                   {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, buf, tcp->u_arg[4], ulen);
+    vm_write_mem(tcp->pid, &addrlen, tcp->u_arg[5], sizeof(socklen_t));
+    free(buf);
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
 }
 
-#define NUM_RET_RECVFROM 3
 INV_FUNC(recvfrom)
 {
 	static int *ibuf = NULL;
@@ -776,9 +799,59 @@ SYS_FUNC(pipe)
 #endif
 }
 
+#define NUM_RET_PIPE 2
 FUZZ_FUNC(pipe)
 {
-    FUZZ_FUNC_RET_ONLY(pipe)
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_PIPE;
+
+    // read the original data
+    kernel_long_t ret = tcp->u_rval;
+    int pair[2];
+    unsigned int len = sizeof(pair);
+    tfetch_mem(tcp, tcp->u_arg[0], len, &pair);
+
+    r_set rlist[NUM_RET_PIPE] = {{&ret, sizeof(int), "ret", 0, 0},
+                                 {&pair, len, "pair", 0, 0}};
+
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &pair, tcp->u_arg[0], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
+
+FUZZ_FUNC(pipe2)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_PIPE;
+
+    // read the original data
+    kernel_long_t ret = tcp->u_rval;
+    int pair[2];
+    unsigned int len = sizeof(pair);
+    tfetch_mem(tcp, tcp->u_arg[0], len, &pair);
+
+    r_set rlist[NUM_RET_PIPE] = {{&ret, sizeof(int), "ret", 0, 0},
+                                 {&pair, len, "pair", 0, 0}};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &pair, tcp->u_arg[0], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
 }
 
 SYS_FUNC(pipe2)

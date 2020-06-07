@@ -53,6 +53,11 @@ SYS_FUNC(epoll_create1)
 	return RVAL_DECODED | RVAL_FD;
 }
 
+FUZZ_FUNC(epoll_create1)
+{
+    FUZZ_FUNC_RET_ONLY(epoll_create1)
+}
+
 #include "xlat/epollevents.h"
 
 static bool
