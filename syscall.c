@@ -730,7 +730,7 @@ syscall_entering_finish(struct tcb *tcp, int res)
     // if it is the accept sycall, send signal to fuzzer_pid
     if (accept_syscall != NULL
         && fuzzer_pid > 0
-//        && !accept_called /* only send signal once*/
+        && !accept_called /* only send signal once*/
         && strcmp(accept_syscall, tcp->s_ent->sys_name) == 0
         && ((cov_enabled && accept_hash > 0 && accept_hash == tcp->stack_hash) || (accept_hash == 0))){
         fprintf(stderr, "sending signal %d to parent script, parent pid %d\n",
