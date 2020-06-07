@@ -1322,7 +1322,7 @@ FUZZ_FUNC(getsockopt)
     tfetch_mem(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
 
     saved = get_tcb_priv_ulong(tcp);
-    void *optval = malloc(optlen);
+    void *optval = malloc(saved);
     tfetch_mem(tcp, tcp->u_arg[3], saved, optval);
 
     kernel_long_t ret = tcp->u_rval;
