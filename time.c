@@ -212,7 +212,7 @@ SYS_FUNC(setitimer)
 	return 0;
 }
 
-#define NUM_RET_SETITIMER
+#define NUM_RET_SETITIMER 2
 FUZZ_FUNC(setitimer)
 {
     // pick one value to modify
