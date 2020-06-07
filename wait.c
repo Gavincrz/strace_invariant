@@ -37,6 +37,9 @@
 #include "ptrace.h"
 
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "xlat/wait4_options.h"
 
