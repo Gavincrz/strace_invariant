@@ -28,3 +28,8 @@ SYS_FUNC(renameat2)
 
 	return RVAL_DECODED;
 }
+
+FUZZ_FUNC(rename)
+{
+    FUZZ_FUNC_RET_ONLY(rename)
+}

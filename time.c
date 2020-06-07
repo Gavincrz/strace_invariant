@@ -212,6 +212,33 @@ SYS_FUNC(setitimer)
 	return 0;
 }
 
+#define NUM_RET_SETITIMER
+FUZZ_FUNC(setitimer)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_SETITIMER;
+
+    // read the original data
+    unsigned int len = sizeof(struct itimerval);
+    struct itimerval fetch_old;
+    tfetch_mem(tcp, tcp->u_arg[2], len, &fetch_old);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_SETITIMER] = {{&ret, sizeof(int), "ret", 0, 0},
+                                      {&fetch_old, len, "old_value", 0, 0}};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &fetch_old, tcp->u_arg[2], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 #ifdef ALPHA
 SYS_FUNC(osf_setitimer)
 {

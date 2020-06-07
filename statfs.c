@@ -48,3 +48,30 @@ INV_FUNC(statfs)
 
 	}
 }
+
+
+FUZZ_FUNC(statfs)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_STATFS;
+
+    // read the original data
+    unsigned int len = sizeof(struct statfs);
+    struct statfs fetch_buf;
+    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_buf);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_STATFS] = {{&ret, sizeof(int), "ret", 0, 0},
+                                   {&fetch_buf, len, "buf", 0, 0}};
+
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &fetch_buf, tcp->u_arg[1], len);
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}

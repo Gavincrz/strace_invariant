@@ -15,6 +15,11 @@ SYS_FUNC(chmod)
 	return RVAL_DECODED;
 }
 
+FUZZ_FUNC(chmod)
+{
+    FUZZ_FUNC_RET_ONLY(chmod)
+}
+
 SYS_FUNC(fchmodat)
 {
 	print_dirfd(tcp, tcp->u_arg[0]);

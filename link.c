@@ -46,6 +46,12 @@ SYS_FUNC(link)
 	return RVAL_DECODED;
 }
 
+FUZZ_FUNC(link)
+{
+    FUZZ_FUNC_RET_ONLY(link)
+}
+
+
 SYS_FUNC(linkat)
 {
 	print_dirfd(tcp, tcp->u_arg[0]);
@@ -59,6 +65,12 @@ SYS_FUNC(linkat)
 	return RVAL_DECODED;
 }
 
+FUZZ_FUNC(unlink)
+{
+    FUZZ_FUNC_RET_ONLY(unlink)
+}
+
+
 SYS_FUNC(unlinkat)
 {
 	print_dirfd(tcp, tcp->u_arg[0]);
@@ -67,6 +79,11 @@ SYS_FUNC(unlinkat)
 	printflags(at_flags, tcp->u_arg[2], "AT_???");
 
 	return RVAL_DECODED;
+}
+
+FUZZ_FUNC(symlink)
+{
+    FUZZ_FUNC_RET_ONLY(symlink)
 }
 
 SYS_FUNC(symlinkat)

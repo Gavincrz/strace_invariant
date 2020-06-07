@@ -46,6 +46,12 @@ FUZZ_FUNC(read)
     FUZZ_FUNC_RET_ONLY(read)
 }
 
+FUZZ_FUNC(readlink)
+{
+    FUZZ_FUNC_RET_ONLY(readlink)
+}
+
+
 #define NUM_RET_READ 1
 INV_FUNC(read)
 {
@@ -299,6 +305,11 @@ INV_FUNC(pread)
     }
 }
 
+FUZZ_FUNC(pread)
+{
+    FUZZ_FUNC_RET_ONLY(pread)
+}
+
 SYS_FUNC(pread)
 {
 	if (entering(tcp)) {
@@ -481,4 +492,10 @@ SYS_FUNC(vmsplice)
 	printflags(splice_flags, tcp->u_arg[3], "SPLICE_F_???");
 
 	return RVAL_DECODED;
+}
+
+
+FUZZ_FUNC(mkdir)
+{
+    FUZZ_FUNC_RET_ONLY(mkdir)
 }

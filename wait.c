@@ -161,6 +161,35 @@ SYS_FUNC(wait4)
 	return printwaitn(tcp, printrusage);
 }
 
+#define NUM_RET_WAIT4 3
+FUZZ_FUNC(wait4)
+{
+    // pick one value to modify
+    int ret_index = rand() % NUM_RET_WAIT4;
+
+    int wstatus;
+    struct rusage rusage;
+    // read the original data
+    tfetch_mem(tcp, tcp->u_arg[1], sizeof(int), &wstatus);
+    tfetch_mem(tcp, tcp->u_arg[3], sizeof(struct rusage), &rusage);
+    kernel_long_t ret = tcp->u_rval;
+
+    r_set rlist[NUM_RET_WAIT4] = {{&ret, sizeof(int), "ret", 0, 0},
+                                  {&wstatus, sizeof(int), "wstatus", 0, 0},
+                                  {&rusage, sizeof(struct rusage), "rusage", 0, 0}};
+    COMMON_FUZZ
+
+    // write back the value;
+    tcp->u_rval = ret;
+    vm_write_mem(tcp->pid, &wstatus, tcp->u_arg[1], sizeof(int));
+    vm_write_mem(tcp->pid, &rusage, tcp->u_arg[3], sizeof(struct rusage));
+
+    // modify return value
+    if (ret_index == 0) {
+        tcp->ret_modified = 1;
+    }
+}
+
 #ifdef ALPHA
 SYS_FUNC(osf_wait4)
 {
