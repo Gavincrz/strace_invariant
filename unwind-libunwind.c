@@ -278,6 +278,7 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
     // lazy load mem regions
     int index = find_mem_region(info, addr);
     if (index < 0) {
+//        int ret = _UPT_accessors.access_mem(as, addr, val, write, arg);
 //        perror_msg("can not find addr 0x%lx, use default ptrace, ptrace return = %d", addr, ret);
         return -UNW_EINVAL;
     }
@@ -340,7 +341,7 @@ init(void)
 	mmap_cache_enable();
 
 	unw_accessors_t proc_accessors = _UPT_accessors;
-	proc_accessors.access_mem = _proc_access_mem;
+//	proc_accessors.access_mem = _proc_access_mem;
 	libunwind_as = unw_create_addr_space(&proc_accessors, 0);
 
 	if (!libunwind_as)
