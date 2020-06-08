@@ -2398,8 +2398,10 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 		if (WCOREDUMP(status)){
 			// write to pid file
 			FILE *fptr = fopen(OUT_PID_FILE, "w+");
-			fprintf(fptr, "%d\n", pid);
-			fclose(fptr);
+			if (fptr != NULL) {
+			    fprintf(fptr, "%d\n", pid);
+			    fclose(fptr);
+			}
 		}
 #else
 		tprintf("+++ killed by %s +++\n",
