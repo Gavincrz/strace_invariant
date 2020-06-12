@@ -48,7 +48,7 @@
 
 FUZZ_FUNC(lseek)
 {
-	FUZZ_FUNC_RET_ONLY(lseek)
+	FUZZ_FUNC_RET_ONLY(lseek, off_t)
 }
 
 INV_FUNC(lseek)

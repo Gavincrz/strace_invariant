@@ -88,7 +88,7 @@ FUZZ_FUNC(sysinfo)
     struct sysinfo fetch_info;
     tfetch_mem(tcp, tcp->u_arg[0], len, &fetch_info);
 
-    r_set rlist[NUM_RET_SYSINFO] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_SYSINFO] = {{&ret, sizeof(int), "ret", 0, 0},
                                  {&fetch_info, len, "info", 0, 0}};
 
     COMMON_FUZZ

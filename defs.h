@@ -1602,7 +1602,7 @@ scno_is_valid(kernel_ulong_t scno)
         }\
     }\
 
-#define FUZZ_FUNC_RET_ONLY(syscall_name)\
+#define FUZZ_FUNC_RET_ONLY(syscall_name, ret_type)\
     kernel_long_t ret = tcp->u_rval;\
     if (ref == NULL) {\
         struct json_object *obj = syscall_fuzz_array[index].object;\
@@ -1629,15 +1629,15 @@ scno_is_valid(kernel_ulong_t scno)
                 tcp->u_rval = json_object_get_int(ret_obj);\
             }\
             else if(rand_index == n_ret) {\
-                memset(&(tcp->u_rval), -1, sizeof(long));\
-                ((char*)&(tcp->u_rval))[sizeof(long)-1] = 0x7f;\
+                memset(&(tcp->u_rval), -1, sizeof(ret_type));\
+                ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = 0x7f;\
             }\
             else if(rand_index == n_ret + 1) {\
-                memset(&(tcp->u_rval), 0, sizeof(long));\
-                ((char*)&(tcp->u_rval))[sizeof(long)-1] = (char)0x80;\
+                memset(&(tcp->u_rval), 0, sizeof(ret_type));\
+                ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = (char)0x80;\
             }\
             else if(rand_index == n_ret + 2) {\
-               if (read(rand_fd, &(tcp->u_rval), sizeof(long)) < 0) {\
+               if (read(rand_fd, &(tcp->u_rval), sizeof(ret_type)) < 0) {\
                     tprintf("read random file failed");\
                 }\
             }\
@@ -1651,12 +1651,12 @@ scno_is_valid(kernel_ulong_t scno)
             tcp->u_rval = ref->value;\
         }\
         else if (ref->min_or_max == -1) {\
-            memset(&(tcp->u_rval), 0, sizeof(long));\
-            ((char*)&(tcp->u_rval))[sizeof(long)-1] = (char)0x80;\
+            memset(&(tcp->u_rval), 0, sizeof(ret_type));\
+            ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = (char)0x80;\
         }\
         else if (ref->min_or_max == 1) {\
-            memset(&(tcp->u_rval), -1, sizeof(long));\
-            ((char*)&(tcp->u_rval))[sizeof(long)-1] = 0x7f;\
+            memset(&(tcp->u_rval), -1, sizeof(ret_type));\
+            ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = 0x7f;\
         }\
         else {\
             error_func_msg_and_die("min_or_max field has value other than min max value");\

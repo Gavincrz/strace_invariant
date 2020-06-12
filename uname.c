@@ -36,7 +36,7 @@
 
 FUZZ_FUNC(uname)
 {
-    FUZZ_FUNC_RET_ONLY(uname)
+    FUZZ_FUNC_RET_ONLY(uname, int)
 }
 
 SYS_FUNC(uname)

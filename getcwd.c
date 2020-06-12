@@ -15,7 +15,7 @@ SYS_FUNC(getcwd)
 #define NUM_RET_GETCWD 1
 FUZZ_FUNC(getcwd)
 {
-    FUZZ_FUNC_RET_ONLY(getcwd)
+    FUZZ_FUNC_RET_ONLY(getcwd, char*)
 }
 
 INV_FUNC(getcwd)

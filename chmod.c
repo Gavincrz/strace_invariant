@@ -17,7 +17,7 @@ SYS_FUNC(chmod)
 
 FUZZ_FUNC(chmod)
 {
-    FUZZ_FUNC_RET_ONLY(chmod)
+    FUZZ_FUNC_RET_ONLY(chmod, int)
 }
 
 SYS_FUNC(fchmodat)

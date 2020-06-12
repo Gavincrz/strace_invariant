@@ -125,7 +125,7 @@ void print_arg_trace_open(struct tcb * tcp)
 
 FUZZ_FUNC(open)
 {
-	FUZZ_FUNC_RET_ONLY(open)
+	FUZZ_FUNC_RET_ONLY(open, int)
 }
 
 
@@ -152,7 +152,7 @@ SYS_FUNC(open)
 
 FUZZ_FUNC(openat)
 {
-	FUZZ_FUNC_RET_ONLY(openat);
+	FUZZ_FUNC_RET_ONLY(openat, int);
 }
 
 #define NUM_RET_OPENAT 1

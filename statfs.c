@@ -61,7 +61,7 @@ FUZZ_FUNC(statfs)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_buf);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_STATFS] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_STATFS] = {{&ret, sizeof(int), "ret", 0, 0},
                                    {&fetch_buf, len, "buf", 0, 0}};
 
     COMMON_FUZZ

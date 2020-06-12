@@ -123,7 +123,7 @@ FUZZ_FUNC(nanosleep)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_rem);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_NANOSLEEP] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_NANOSLEEP] = {{&ret, sizeof(int), "ret", 0, 0},
                                  FUZZ_SET(fetch_rem.tv_sec, "tv_sec"),
                                  FUZZ_SET(fetch_rem.tv_nsec, "tv_nsec"),};
 
@@ -151,7 +151,7 @@ FUZZ_FUNC(clock_gettime)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_rem);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_NANOSLEEP] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_NANOSLEEP] = {{&ret, sizeof(int), "ret", 0, 0},
                                       FUZZ_SET(fetch_rem.tv_sec, "tv_sec"),
                                       FUZZ_SET(fetch_rem.tv_nsec, "tv_nsec"),};
 
@@ -224,7 +224,7 @@ FUZZ_FUNC(setitimer)
     tfetch_mem(tcp, tcp->u_arg[2], len, &fetch_old);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_SETITIMER] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_SETITIMER] = {{&ret, sizeof(int), "ret", 0, 0},
                                       {&fetch_old, len, "old_value", 0, 0}};
 
     COMMON_FUZZ

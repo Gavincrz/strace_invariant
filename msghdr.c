@@ -444,7 +444,7 @@ SYS_FUNC(sendmsg)
 
 FUZZ_FUNC(sendmsg)
 {
-    FUZZ_FUNC_RET_ONLY(sendmsg)
+    FUZZ_FUNC_RET_ONLY(sendmsg, ssize_t)
 }
 
 SYS_FUNC(recvmsg)
@@ -530,7 +530,7 @@ FUZZ_FUNC(recvmsg)
     tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_hdr);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_RECVMSG] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_RECVMSG] = {{&ret, sizeof(ssize_t), "ret", 0, 0},
                                       FUZZ_SET(fetch_hdr.msg_controllen, "msg_controllen")};
 
     COMMON_FUZZ

@@ -45,5 +45,5 @@ SYS_FUNC(bind)
 
 FUZZ_FUNC(bind)
 {
-    FUZZ_FUNC_RET_ONLY(bind)
+    FUZZ_FUNC_RET_ONLY(bind, int)
 }

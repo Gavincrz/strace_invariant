@@ -48,7 +48,7 @@ SYS_FUNC(link)
 
 FUZZ_FUNC(link)
 {
-    FUZZ_FUNC_RET_ONLY(link)
+    FUZZ_FUNC_RET_ONLY(link, int)
 }
 
 
@@ -67,7 +67,7 @@ SYS_FUNC(linkat)
 
 FUZZ_FUNC(unlink)
 {
-    FUZZ_FUNC_RET_ONLY(unlink)
+    FUZZ_FUNC_RET_ONLY(unlink, int)
 }
 
 
@@ -83,7 +83,7 @@ SYS_FUNC(unlinkat)
 
 FUZZ_FUNC(symlink)
 {
-    FUZZ_FUNC_RET_ONLY(symlink)
+    FUZZ_FUNC_RET_ONLY(symlink, int)
 }
 
 SYS_FUNC(symlinkat)

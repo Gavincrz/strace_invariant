@@ -31,5 +31,5 @@ SYS_FUNC(renameat2)
 
 FUZZ_FUNC(rename)
 {
-    FUZZ_FUNC_RET_ONLY(rename)
+    FUZZ_FUNC_RET_ONLY(rename, int)
 }

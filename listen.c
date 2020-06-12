@@ -42,5 +42,5 @@ SYS_FUNC(listen)
 
 FUZZ_FUNC(listen)
 {
-    FUZZ_FUNC_RET_ONLY(listen)
+    FUZZ_FUNC_RET_ONLY(listen, int)
 }

@@ -43,12 +43,12 @@ void print_arg_trace_read_write(struct tcb *tcp){
 
 FUZZ_FUNC(read)
 {
-    FUZZ_FUNC_RET_ONLY(read)
+    FUZZ_FUNC_RET_ONLY(read, ssize_t)
 }
 
 FUZZ_FUNC(readlink)
 {
-    FUZZ_FUNC_RET_ONLY(readlink)
+    FUZZ_FUNC_RET_ONLY(readlink, ssize_t)
 }
 
 
@@ -112,7 +112,7 @@ SYS_FUNC(read)
 
 FUZZ_FUNC(write)
 {
-    FUZZ_FUNC_RET_ONLY(write)
+    FUZZ_FUNC_RET_ONLY(write, ssize_t)
 }
 
 #define NUM_RET_WRITE 1
@@ -272,7 +272,7 @@ SYS_FUNC(writev)
 
 FUZZ_FUNC(writev)
 {
-    FUZZ_FUNC_RET_ONLY(writev)
+    FUZZ_FUNC_RET_ONLY(writev, ssize_t)
 }
 
 #define NUM_RET_PREAD 1
@@ -307,7 +307,7 @@ INV_FUNC(pread)
 
 FUZZ_FUNC(pread)
 {
-    FUZZ_FUNC_RET_ONLY(pread)
+    FUZZ_FUNC_RET_ONLY(pread, ssize_t)
 }
 
 SYS_FUNC(pread)
@@ -497,5 +497,5 @@ SYS_FUNC(vmsplice)
 
 FUZZ_FUNC(mkdir)
 {
-    FUZZ_FUNC_RET_ONLY(mkdir)
+    FUZZ_FUNC_RET_ONLY(mkdir, int)
 }

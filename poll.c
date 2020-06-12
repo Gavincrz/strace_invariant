@@ -206,7 +206,7 @@ FUZZ_FUNC(poll)
 
     tfetch_mem(tcp, tcp->u_arg[0], len, fds);
 
-    r_set rlist[NUM_RET_POLL] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_POLL] = {{&ret, sizeof(int), "ret", 0, 0},
                                  {fds, len, "fds", 0, 0}};
 
     COMMON_FUZZ

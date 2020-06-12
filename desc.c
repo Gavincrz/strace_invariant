@@ -40,7 +40,7 @@ INV_FUNC(getpid)
 
 FUZZ_FUNC(getpid)
 {
-    FUZZ_FUNC_RET_ONLY(getpid)
+    FUZZ_FUNC_RET_ONLY(getpid, pid_t)
 }
 
 INV_FUNC(getppid)
@@ -50,12 +50,12 @@ INV_FUNC(getppid)
 
 FUZZ_FUNC(getppid)
 {
-    FUZZ_FUNC_RET_ONLY(getppid)
+    FUZZ_FUNC_RET_ONLY(getppid, pid_t)
 }
 
 FUZZ_FUNC(getpgrp)
 {
-    FUZZ_FUNC_RET_ONLY(getpgrp)
+    FUZZ_FUNC_RET_ONLY(getpgrp, pid_t)
 }
 
 INV_FUNC(getgid)
@@ -65,7 +65,7 @@ INV_FUNC(getgid)
 
 FUZZ_FUNC(getgid)
 {
-    FUZZ_FUNC_RET_ONLY(getgid)
+    FUZZ_FUNC_RET_ONLY(getgid, gid_t)
 }
 
 INV_FUNC(getuid)
@@ -85,17 +85,17 @@ INV_FUNC(geteuid)
 
 FUZZ_FUNC(geteuid)
 {
-    FUZZ_FUNC_RET_ONLY(geteuid)
+    FUZZ_FUNC_RET_ONLY(geteuid, uid_t)
 }
 
 FUZZ_FUNC(getegid)
 {
-    FUZZ_FUNC_RET_ONLY(getegid)
+    FUZZ_FUNC_RET_ONLY(getegid, gid_t)
 }
 
 FUZZ_FUNC(close)
 {
-    FUZZ_FUNC_RET_ONLY(close)
+    FUZZ_FUNC_RET_ONLY(close, int)
 }
 
 
@@ -171,12 +171,12 @@ INV_FUNC(dup2)
 
 FUZZ_FUNC(dup)
 {
-    FUZZ_FUNC_RET_ONLY(dup)
+    FUZZ_FUNC_RET_ONLY(dup, int)
 }
 
 FUZZ_FUNC(dup2)
 {
-    FUZZ_FUNC_RET_ONLY(dup2)
+    FUZZ_FUNC_RET_ONLY(dup2, int)
 }
 
 INV_FUNC(dup3)
@@ -186,7 +186,7 @@ INV_FUNC(dup3)
 
 FUZZ_FUNC(dup3)
 {
-    FUZZ_FUNC_RET_ONLY(dup3)
+    FUZZ_FUNC_RET_ONLY(dup3, int)
 }
 
 SYS_FUNC(dup2)
@@ -427,7 +427,7 @@ FUZZ_FUNC(select)
 
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_SELECT] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_SELECT] = {{&ret, sizeof(int), "ret", 0, 0},
                                   {readfds, fd_size, "readfds", 0, 0},
                                   {writefds, fd_size, "writefds", 0, 0},
                                   {exceptfds, fd_size, "exceptfds", 0, 0},
@@ -553,46 +553,46 @@ SYS_FUNC(pselect6)
 
 FUZZ_FUNC(getuid)
 {
-    FUZZ_FUNC_RET_ONLY(getuid)
+    FUZZ_FUNC_RET_ONLY(getuid, uid_t)
 }
 
 FUZZ_FUNC(setuid)
 {
-    FUZZ_FUNC_RET_ONLY(setuid)
+    FUZZ_FUNC_RET_ONLY(setuid, int)
 }
 
 FUZZ_FUNC(setgid)
 {
-    FUZZ_FUNC_RET_ONLY(setgid)
+    FUZZ_FUNC_RET_ONLY(setgid, int)
 }
 
 FUZZ_FUNC(setgroups)
 {
-    FUZZ_FUNC_RET_ONLY(setgroups)
+    FUZZ_FUNC_RET_ONLY(setgroups, int)
 }
 
 FUZZ_FUNC(setsid)
 {
-    FUZZ_FUNC_RET_ONLY(setsid)
+    FUZZ_FUNC_RET_ONLY(setsid, pid_t)
 }
 
 FUZZ_FUNC(chroot)
 {
-    FUZZ_FUNC_RET_ONLY(chroot)
+    FUZZ_FUNC_RET_ONLY(chroot, int)
 }
 
 FUZZ_FUNC(setresuid)
 {
-    FUZZ_FUNC_RET_ONLY(setresuid)
+    FUZZ_FUNC_RET_ONLY(setresuid, int)
 }
 
 FUZZ_FUNC(setresgid)
 {
-    FUZZ_FUNC_RET_ONLY(setresgid)
+    FUZZ_FUNC_RET_ONLY(setresgid, int)
 }
 
 FUZZ_FUNC(getgroups)
 {
-    FUZZ_FUNC_RET_ONLY(getgroups)
+    FUZZ_FUNC_RET_ONLY(getgroups, int)
 }
 

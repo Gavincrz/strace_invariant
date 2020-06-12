@@ -61,7 +61,7 @@ FUZZ_FUNC(sendfile64)
     tfetch_mem(tcp, tcp->u_arg[2], sizeof(off_t), &offset);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_SENDFILE] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_SENDFILE] = {{&ret, sizeof(ssize_t), "ret", 0, 0},
                                      {&offset, sizeof(off_t), "offset", 0, 0}};
     COMMON_FUZZ
 

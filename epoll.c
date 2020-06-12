@@ -34,7 +34,7 @@
 
 FUZZ_FUNC(epoll_create)
 {
-    FUZZ_FUNC_RET_ONLY(epoll_create)
+    FUZZ_FUNC_RET_ONLY(epoll_create, int)
 }
 
 SYS_FUNC(epoll_create)
@@ -55,7 +55,7 @@ SYS_FUNC(epoll_create1)
 
 FUZZ_FUNC(epoll_create1)
 {
-    FUZZ_FUNC_RET_ONLY(epoll_create1)
+    FUZZ_FUNC_RET_ONLY(epoll_create1, int)
 }
 
 #include "xlat/epollevents.h"
@@ -97,7 +97,7 @@ SYS_FUNC(epoll_ctl)
 
 FUZZ_FUNC(epoll_ctl)
 {
-    FUZZ_FUNC_RET_ONLY(epoll_ctl)
+    FUZZ_FUNC_RET_ONLY(epoll_ctl, int)
 }
 
 void print_arg_trace_epoll_wait(struct tcb *tcp){
@@ -205,7 +205,7 @@ FUZZ_FUNC(epoll_wait)
     struct epoll_event *events = malloc(len);
     tfetch_mem(tcp, tcp->u_arg[1], len, events);
 
-    r_set rlist[NUM_RET_EPOLL_WAIT] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_EPOLL_WAIT] = {{&ret, sizeof(int), "ret", 0, 0},
                                        FUZZ_SET_ARRAY(events[0].events, "events",
                                                (int)maxevents, sizeof(struct epoll_event)),
                                        FUZZ_SET_ARRAY(events[0].data.fd, "data",

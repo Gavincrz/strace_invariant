@@ -10,5 +10,5 @@ SYS_FUNC(chdir)
 
 FUZZ_FUNC(chdir)
 {
-    FUZZ_FUNC_RET_ONLY(chdir)
+    FUZZ_FUNC_RET_ONLY(chdir, int)
 }

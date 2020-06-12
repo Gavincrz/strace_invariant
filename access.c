@@ -27,7 +27,7 @@ SYS_FUNC(access)
 
 FUZZ_FUNC(access)
 {
-    FUZZ_FUNC_RET_ONLY(access)
+    FUZZ_FUNC_RET_ONLY(access, int)
 }
 
 SYS_FUNC(faccessat)

@@ -177,7 +177,7 @@ FUZZ_FUNC(wait4)
     tfetch_mem(tcp, tcp->u_arg[3], sizeof(struct rusage), &rusage);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_WAIT4] = {{&ret, sizeof(long), "ret", 0, 0},
+    r_set rlist[NUM_RET_WAIT4] = {{&ret, sizeof(pid_t), "ret", 0, 0},
                                   {&wstatus, sizeof(int), "wstatus", 0, 0},
                                   {&rusage, sizeof(struct rusage), "rusage", 0, 0}};
     COMMON_FUZZ
