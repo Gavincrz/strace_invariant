@@ -83,7 +83,7 @@ FUZZ_FUNC(getdents)
     tfetch_mem(tcp, tcp->u_arg[1], len, buf);
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_GETDENTS] = {{&ret, sizeof(int), "ret", 0, 0},
+    r_set rlist[NUM_RET_GETDENTS] = {{&ret, sizeof(long), "ret", 0, 0},
                                   {buf, len, "dirp", 0, 0}};
     COMMON_FUZZ
 

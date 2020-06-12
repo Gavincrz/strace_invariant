@@ -204,7 +204,7 @@ FUZZ_FUNC(prlimit64)
     }
     kernel_long_t ret = tcp->u_rval;
 
-    r_set rlist[NUM_RET_PRLIMIT64] = {{&ret, sizeof(int), "ret", 0, 0},
+    r_set rlist[NUM_RET_PRLIMIT64] = {{&ret, sizeof(long), "ret", 0, 0},
                                       FUZZ_SET(limitbuf.rlim_cur, "rlim_cur"),
                                       FUZZ_SET(limitbuf.rlim_max, "rlim_max")};
     COMMON_FUZZ

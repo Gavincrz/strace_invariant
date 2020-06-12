@@ -1067,8 +1067,13 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
                     {
                         // append the syscall to record file
                         FILE* fptr = fopen(record_file, "a+");
-                        fprintf(fptr, "syscall: %s, hash: %u\n", tcp->s_ent->sys_name, tcp->stack_hash);
-                        fclose(fptr);
+                        if (fptr == NULL) {
+                            fprintf(stderr, "error: unable to open recordfile :%s\n", record_file);
+                        }
+                        else{
+                            fprintf(fptr, "syscall: %s, hash: %u\n", tcp->s_ent->sys_name, tcp->stack_hash);
+                            fclose(fptr);
+                        }
                     }
                     // fuzz the syscall
                     tcp->s_ent->fuzz_func(tcp, ref_index, &fuzz_reference[ref_index]);

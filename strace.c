@@ -2394,7 +2394,9 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 		tprintf("+++ killed by %s %s pid = %d +++\n",
 			signame(WTERMSIG(status)),
 			WCOREDUMP(status) ? "(core dumped) " : "", pid);
-
+		struct rlimit limit;
+        getrlimit(RLIMIT_CORE, &limit);
+        tprintf("soft = %d, hard = %d\n", limit.rlim_cur, limit.rlim_max);
 		if (WCOREDUMP(status)){
 			// write to pid file
 			FILE *fptr = fopen(OUT_PID_FILE, "w+");
