@@ -1721,11 +1721,11 @@ scno_is_valid(kernel_ulong_t scno)
                 int value = json_object_get_int(ret_obj);\
                 memcpy(target.addr, &value, target.size);\
             }\
-            else if (rand_index == num_input) {\
+            else if (rand_index == num_input && target.size > 0) {\
                 memset(target.addr, -1, target.size);\
                 ((char*)target.addr)[target.size-1] = 0x7f;\
             }\
-            else if (rand_index == num_input + 1) {\
+            else if (rand_index == num_input + 1 && target.size > 0) {\
                 memset(target.addr, 0x00, target.size);\
                 ((char*)target.addr)[target.size-1] = (char)0x80;\
             }\
@@ -1768,11 +1768,11 @@ scno_is_valid(kernel_ulong_t scno)
         if (ref->min_or_max == 0) {\
             memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
         }\
-        else if (ref->min_or_max == -1) {\
+        else if (ref->min_or_max == -1 && target.size > 0) {\
             memset(target.addr, 0x00, target.size);\
             ((char*)target.addr)[target.size-1] = (char)0x80;\
         }\
-        else if (ref->min_or_max == 1) {\
+        else if (ref->min_or_max == 1 && target.size > 0) {\
             memset(target.addr, -1, target.size);\
             ((char*)target.addr)[target.size-1] = 0x7f;\
         }\
