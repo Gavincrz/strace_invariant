@@ -37,6 +37,7 @@
 
 
 #define MAX_REGIONS 1024
+#define ERROR_FD -10086
 static unw_addr_space_t libunwind_as;
 static long num_print_stack = 0;
 static long num_uwn_step = 0;
@@ -176,14 +177,17 @@ get_mem_region_addr(struct proc_info* info)
     if (!info->map_fp) {
         info->map_fp = fopen(info->map_path, "r");
         if (!info->map_fp) {
-            perror_msg_and_die("Open maps");
+            info->mem_fd = ERROR_FD;
+            perror_msg("Open maps");
             return;
         }
     }
     if (info->mem_fd < 0) {
         info->mem_fd = open(info->mem_path, O_RDONLY);
         if (info->mem_fd < 0) {
-            perror_msg_and_die("Open mem file");
+            perror_msg("Open mem file");
+            info->mem_fd = ERROR_FD;
+            return;
         }
     }
 
@@ -286,6 +290,23 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
 
 
     struct proc_info *info = (struct proc_info *)arg;
+
+    /* lazy open the mem_fd, if mem_fd open failed last time, means setuid*/
+    if (info->mem_fd == ERROR_FD)
+    {
+        int ret = _UPT_accessors.access_mem(as, addr, val, write, arg);
+        return ret;
+    }
+    if (info->mem_fd < 0) {
+        info->mem_fd = open(info->mem_path, O_RDONLY);
+        if (info->mem_fd < 0) {
+            info->mem_fd = ERROR_FD;
+            int ret = _UPT_accessors.access_mem(as, addr, val, write, arg);
+            return ret;
+        }
+    }
+
+
     // lazy load mem regions
     int index = find_mem_region(info, addr);
     if (index < 0) {
@@ -301,14 +322,6 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
         info->num_read_lseek++;
         unsigned long region_size = region->end_addr - region->start_addr;
         region->data = malloc(sizeof(char) * region_size);
-
-        /* lazy open the mem_fd */
-        if (info->mem_fd < 0) {
-            info->mem_fd = open(info->mem_path, O_RDONLY);
-            if (info->mem_fd < 0) {
-                perror_msg_and_die("Open mem file");
-            }
-        }
 
         /* start read from stack location */
         if (lseek(info->mem_fd, region->start_addr, SEEK_SET) < 0) {
