@@ -92,8 +92,14 @@ free_mem_region(struct proc_info* info)
 void
 destroy_proc_info(struct proc_info* info)
 {
+    if (!info) {
+        error_msg("info is null during destruction\n");
+        return;
+    }
     free_mem_region(info);
-    fclose(info->map_fp);
+    if (info->map_fp != NULL) {
+        fclose(info->map_fp);
+    }
     close(info->mem_fd);
 
     // print some statics
@@ -112,18 +118,8 @@ init_proc_info(struct proc_info* info, int pid)
     info->num_regions = 0;
     perror_msg("size of regions = %ld", sizeof(info->regions));
     memset(&(info->regions), 0, sizeof(info->regions));
-
-    info->map_fp = fopen(info->map_path, "r");
-    if (!info->map_fp) {
-        perror_msg_and_die("Open maps");
-        return;
-    }
-
-    info->mem_fd = open(info->mem_path, O_RDONLY);
-    if (info->mem_fd < 0) {
-        perror_msg_and_die("Open mem file");
-    }
-
+    info->map_fp = NULL;
+    info->mem_fd = -1;
     info->mmap_cache_search_void = mmap_cache_search_void;
 
 }
@@ -176,6 +172,21 @@ free_writable_region(struct proc_info* info)
 void
 get_mem_region_addr(struct proc_info* info)
 {
+    // lazy load
+    if (!info->map_fp) {
+        info->map_fp = fopen(info->map_path, "r");
+        if (!info->map_fp) {
+            perror_msg_and_die("Open maps");
+            return;
+        }
+    }
+    if (info->mem_fd < 0) {
+        info->mem_fd = open(info->mem_path, O_RDONLY);
+        if (info->mem_fd < 0) {
+            perror_msg_and_die("Open mem file");
+        }
+    }
+
     rewind(info->map_fp);
     // parsing maps file, find stack address range
     ssize_t line_size;
