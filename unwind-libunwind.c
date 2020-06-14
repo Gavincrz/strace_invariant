@@ -174,6 +174,9 @@ void
 get_mem_region_addr(struct proc_info* info)
 {
     // lazy load
+    if (info->mem_fd == ERROR_FD) {
+        return;
+    }
     if (!info->map_fp) {
         info->map_fp = fopen(info->map_path, "r");
         if (!info->map_fp) {
