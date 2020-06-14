@@ -302,6 +302,14 @@ _proc_access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val,
         unsigned long region_size = region->end_addr - region->start_addr;
         region->data = malloc(sizeof(char) * region_size);
 
+        /* lazy open the mem_fd */
+        if (info->mem_fd < 0) {
+            info->mem_fd = open(info->mem_path, O_RDONLY);
+            if (info->mem_fd < 0) {
+                perror_msg_and_die("Open mem file");
+            }
+        }
+
         /* start read from stack location */
         if (lseek(info->mem_fd, region->start_addr, SEEK_SET) < 0) {
             perror_msg_and_die("Lseek mem");
