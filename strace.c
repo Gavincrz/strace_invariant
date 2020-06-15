@@ -89,7 +89,7 @@ bool recursive_fuzz = false;
 char *reference_file = NULL;
 #define MAX_FUZZ_REF 100
 ref_entry fuzz_reference[MAX_FUZZ_REF];
-int repeat_max = 3;
+int repeat_max = 10;
 
 #ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
@@ -1677,7 +1677,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "kn:NQ:"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:lK:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1774,7 +1774,7 @@ init(int argc, char *argv[])
 		    fuzz_config_fname = optarg;
 		    break;
 		case 'l':
-            after_accept = true;
+            repeat_max = string_to_uint(optarg);
 		    break;
 		case 'L': // record syscall get called
             record_file = optarg;
