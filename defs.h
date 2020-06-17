@@ -219,6 +219,8 @@ typedef struct ref_entry {
     long value;
     int min_or_max; // -1 min, 0 use value instead, 1 max
     int count; // number of time encountered
+    long all_field_value[40];
+    int field_count;
 } ref_entry;
 
 #define MAX_ERRNO_VALUE			4095
@@ -1644,22 +1646,30 @@ scno_is_valid(kernel_ulong_t scno)
         }\
     }\
     else {\
-        if (ref->field_index != 0) {\
-            error_func_msg_and_die("filed index not equal to 0 for ret only syscall");\
-        }\
-        if (ref->min_or_max == 0) {\
-            tcp->u_rval = ref->value;\
-        }\
-        else if (ref->min_or_max == -1) {\
-            memset(&(tcp->u_rval), 0, sizeof(ret_type));\
-            ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = (char)0x80;\
-        }\
-        else if (ref->min_or_max == 1) {\
-            memset(&(tcp->u_rval), -1, sizeof(ret_type));\
-            ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = 0x7f;\
+        if (ref->field_index == -1) {\
+            if (ref->field_count != 1) {\
+                error_func_msg_and_die("filed count not equal to 1 for ret only syscall");\
+            }\
+            tcp->u_rval = ref->all_field_value[0];\
         }\
         else {\
-            error_func_msg_and_die("min_or_max field has value other than min max value");\
+            if (ref->field_index != 0) {\
+                error_func_msg_and_die("filed index not equal to 0 for ret only syscall");\
+            }\
+            if (ref->min_or_max == 0) {\
+                tcp->u_rval = ref->value;\
+            }\
+            else if (ref->min_or_max == -1) {\
+                memset(&(tcp->u_rval), 0, sizeof(ret_type));\
+                ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = (char)0x80;\
+            }\
+            else if (ref->min_or_max == 1) {\
+                memset(&(tcp->u_rval), -1, sizeof(ret_type));\
+                ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = 0x7f;\
+            }\
+            else {\
+                error_func_msg_and_die("min_or_max field has value other than min max value");\
+            }\
         }\
     }\
     tcp->ret_modified = 1;\
@@ -1748,44 +1758,83 @@ scno_is_valid(kernel_ulong_t scno)
         }\
     }\
     else {\
-        r_set target = rlist[ref->field_index];\
         if (record_file) {\
             fptr = fopen(record_file, "a+");\
-            fprintf(fptr, "%s: ", target.name);\
         }\
-        tprintf("\nmodified %s: ", target.name);\
-        size_t print_size = MIN(target.size, sizeof(long));\
-        for (size_t i = 0; i < print_size; i++) {\
-            tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-            if (fptr) {\
-                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+        if (ref->field_index == -1) {\
+            if (ref->field_count != sizeof(rlist)) {\
+                error_func_msg_and_die("filed count not equal rlist");\
             }\
-        }\
-        tprintf(" -> ");\
-        if (fptr) {\
-            fprintf(fptr, " -> ");\
-        }\
-        if (ref->min_or_max == 0) {\
-            memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
-        }\
-        else if (ref->min_or_max == -1 && target.size > 0) {\
-            memset(target.addr, 0x00, target.size);\
-            ((char*)target.addr)[target.size-1] = (char)0x80;\
-        }\
-        else if (ref->min_or_max == 1 && target.size > 0) {\
-            memset(target.addr, -1, target.size);\
-            ((char*)target.addr)[target.size-1] = 0x7f;\
-        }\
-        else {\
-            error_func_msg_and_die("min_or_max field has value other than min max value");\
-        }\
-        if (ref->field_index == 0) {\
+            for (int j = 0; j < ref->field_count; j++) {\
+                r_set target = rlist[j];\
+                if (fptr) {\
+                    fprintf(fptr, "%s: ", target.name);\
+                }\
+                tprintf("\nmodified %s: ", target.name);\
+                size_t print_size = MIN(target.size, sizeof(long));\
+                for (size_t i = 0; i < print_size; i++) {\
+                    tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+                    if (fptr) {\
+                        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+                    }\
+                }\
+                tprintf(" -> ");\
+                if (fptr) {\
+                    fprintf(fptr, " -> ");\
+                }\
+                memcpy(target.addr, &(ref->all_field_value[j]), MIN(target.size, sizeof(long)));\
+                for (size_t i = 0; i <print_size; i++) {\
+                    tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+                    if (fptr) {\
+                        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+                    }\
+                }\
+                tprintf("(%ld)\n", ref->all_field_value[j]);\
+                if (fptr) {\
+                    fprintf(fptr, "(%ld)\n", ref->all_field_value[j]);\
+                }\
+            }\
             tcp->ret_modified = 1;\
         }\
-        for (size_t i = 0; i <print_size; i++) {\
-            tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+        else {\
+            r_set target = rlist[ref->field_index];\
             if (fptr) {\
-                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+                fprintf(fptr, "%s: ", target.name);\
+            }\
+            tprintf("\nmodified %s: ", target.name);\
+            size_t print_size = MIN(target.size, sizeof(long));\
+            for (size_t i = 0; i < print_size; i++) {\
+                tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+                if (fptr) {\
+                    fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+                }\
+            }\
+            tprintf(" -> ");\
+            if (fptr) {\
+                fprintf(fptr, " -> ");\
+            }\
+            if (ref->min_or_max == 0) {\
+                memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
+            }\
+            else if (ref->min_or_max == -1 && target.size > 0) {\
+                memset(target.addr, 0x00, target.size);\
+                ((char*)target.addr)[target.size-1] = (char)0x80;\
+            }\
+            else if (ref->min_or_max == 1 && target.size > 0) {\
+                memset(target.addr, -1, target.size);\
+                ((char*)target.addr)[target.size-1] = 0x7f;\
+            }\
+            else {\
+                error_func_msg_and_die("min_or_max field has value other than min max value");\
+            }\
+            if (ref->field_index == 0) {\
+                tcp->ret_modified = 1;\
+            }\
+            for (size_t i = 0; i <print_size; i++) {\
+                tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
+                if (fptr) {\
+                    fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
+                }\
             }\
         }\
         tprintf("\n");\

@@ -1943,16 +1943,36 @@ init(int argc, char *argv[])
             fuzz_reference[ref_count].stack_hash = string_to_ulong(hash_str);
             // store the field_index
             fuzz_reference[ref_count].field_index = field_index;
-            // store the value
-            if (strcmp(value, "MIN") == 0) {
-                fuzz_reference[ref_count].min_or_max = -1;
+
+            fuzz_reference[ref_count].field_count = 0;
+            // if field_index == -1
+            if (field_index == -1) { // means fuzz all the field together
+                // parsing the value separate by comma
+                char seps[] = "@";
+                char* token;
+                int field_count = 0;
+                token = strtok (value, seps);
+                while (token != NULL)
+                {
+                    long temp_val = strtol(value, NULL, 10);
+                    fuzz_reference[ref_count].all_field_value[field_count] = temp_val;
+                    token = strtok (NULL, seps);
+                    field_count++;
+                }
+                fuzz_reference[ref_count].field_count = field_count;
             }
-            else if (strcmp(value, "MAX") == 0) {
-                fuzz_reference[ref_count].min_or_max = 1;
-            }
-            else {
-                fuzz_reference[ref_count].min_or_max = 0;
-                fuzz_reference[ref_count].value = strtol(value, NULL, 10);
+            else { // parse one value
+                // store the value
+                if (strcmp(value, "MIN") == 0) {
+                    fuzz_reference[ref_count].min_or_max = -1;
+                }
+                else if (strcmp(value, "MAX") == 0) {
+                    fuzz_reference[ref_count].min_or_max = 1;
+                }
+                else {
+                    fuzz_reference[ref_count].min_or_max = 0;
+                    fuzz_reference[ref_count].value = strtol(value, NULL, 10);
+                }
             }
             fuzz_reference[ref_count].count = 0;
             /* Get the next line */
@@ -1968,14 +1988,22 @@ init(int argc, char *argv[])
         for (int i = 0; i < reference_count; i++) {
             fprintf(stderr, "%s %u %d ", fuzz_reference[i].syscallname,
                     fuzz_reference[i].stack_hash, fuzz_reference[i].field_index);
-            if (fuzz_reference[i].min_or_max == 0) {
-                fprintf(stderr, "%ld\n", fuzz_reference[i].value);
+            if (fuzz_reference[i].field_index == -1) {
+                for (int j = 0; j < fuzz_reference[i].field_count; j++) {
+                    fprintf(stderr, "%ld@", fuzz_reference[i].all_field_value[j]);
+                }
+                frintf(stderr, "\n");
             }
-            if (fuzz_reference[i].min_or_max == -1) {
-                fprintf(stderr, "MIN\n");
-            }
-            if (fuzz_reference[i].min_or_max == 1) {
-                fprintf(stderr, "MAX\n");
+            else {
+                if (fuzz_reference[i].min_or_max == 0) {
+                    fprintf(stderr, "%ld\n", fuzz_reference[i].value);
+                }
+                if (fuzz_reference[i].min_or_max == -1) {
+                    fprintf(stderr, "MIN\n");
+                }
+                if (fuzz_reference[i].min_or_max == 1) {
+                    fprintf(stderr, "MAX\n");
+                }
             }
         }
     }
