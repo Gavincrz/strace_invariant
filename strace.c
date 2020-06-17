@@ -1954,7 +1954,7 @@ init(int argc, char *argv[])
                 token = strtok (value, seps);
                 while (token != NULL)
                 {
-                    long temp_val = strtol(value, NULL, 10);
+                    long temp_val = strtol(token, NULL, 10);
                     fuzz_reference[ref_count].all_field_value[field_count] = temp_val;
                     token = strtok (NULL, seps);
                     field_count++;
