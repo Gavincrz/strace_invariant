@@ -1762,7 +1762,7 @@ scno_is_valid(kernel_ulong_t scno)
             fptr = fopen(record_file, "a+");\
         }\
         if (ref->field_index == -1) {\
-            if (ref->field_count != sizeof(rlist)) {\
+            if (ref->field_count != sizeof(rlist)/sizeof(rlist[0])) {\
                 error_func_msg_and_die("filed count not equal rlist");\
             }\
             for (int j = 0; j < ref->field_count; j++) {\
