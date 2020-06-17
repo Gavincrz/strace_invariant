@@ -1992,7 +1992,7 @@ init(int argc, char *argv[])
                 for (int j = 0; j < fuzz_reference[i].field_count; j++) {
                     fprintf(stderr, "%ld@", fuzz_reference[i].all_field_value[j]);
                 }
-                frintf(stderr, "\n");
+                fprintf(stderr, "\n");
             }
             else {
                 if (fuzz_reference[i].min_or_max == 0) {
