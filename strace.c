@@ -70,11 +70,14 @@ static FILE *invf;
 bool should_tamper = false;
 bool fuzz_valid = false;
 int skip_count = 0;
+char* target_syscall = NULL;
+bool fuzz_all = false;
 char *accept_syscall = NULL;
 char *record_file = NULL; // output syscall sequence to it
 char *fuzz_config_fname = NULL; // json file store fuzz configs
 char *cov_file = NULL; // output cov hashes
 uint32_t accept_hash = 0;
+char* count_file = NULL;
 
 int num_fuzz_syscalls = 0;
 struct syscall_elem * syscall_fuzz_array = NULL;
@@ -1677,7 +1680,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "kn:NQ:"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhiI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
+	    "a:Ab:B:cCdDe:E:fFg:GhH:iI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1741,6 +1744,9 @@ init(int argc, char *argv[])
 		case 'h':
 			usage();
 			break;
+		case 'H':
+            target_syscall = optarg;
+		    break;
 		case 'i':
 			iflag = 1;
 			break;
@@ -1764,7 +1770,7 @@ init(int argc, char *argv[])
 		    cov_file = optarg;
 		    break;
 		case 'N':
-		    not_write = true;
+		    count_file = optarg;
 		    break;
 		case 'Q':
 		    accept_hash = string_to_ulong(optarg);
@@ -1880,6 +1886,12 @@ init(int argc, char *argv[])
 		}
 	}
 
+	if (target_syscall) { // if target syscall name is "ALL", fuzz all syscall
+	    if (!strcmp(target_syscall, "ALL")) {
+	        fuzz_all = true;
+	    }
+	}
+
 	if (after_accept && accept_syscall == NULL) {
         error_msg_and_help("accept syscall must be set (-j) by setting after_accept (-l)");
 	}
@@ -1899,7 +1911,22 @@ init(int argc, char *argv[])
         close(fd);
 	}
 
-
+	if (count_file != NULL) {
+	    // remove and create a new count file
+        remove(count_file);
+        int fd = open(count_file, O_CREAT, 0666);
+        if (fd == -1) {
+            error_msg_and_die("unable to create count_file");
+        }
+        // change owner to nobody
+        int ret = fchmod(fd, S_IROTH|S_IWOTH);
+        if (ret == -1) {
+            error_msg_and_die("unable to change mode of count_file");
+        }
+        // write -1 to the count file
+        write(fd, "-1\n", 3);
+        close(fd);
+	}
 
 	if (cov_file != NULL) {
         int fd = open(cov_file, O_CREAT|O_RDWR, 0666);

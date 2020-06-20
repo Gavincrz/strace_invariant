@@ -350,6 +350,10 @@ extern int reference_count;
 extern const struct xlat addrfams[];
 extern int repeat_max;
 
+extern char* target_syscall;
+extern bool fuzz_all;
+extern char* count_file;
+
 /** Protocol hardware identifiers array, sorted, defined in sockaddr.c. */
 extern const struct xlat arp_hardware_types[];
 /** Protocol hardware identifiers array size without terminating record. */
@@ -522,6 +526,8 @@ extern unsigned os_release;
 #define INPUT_DIRECTORY "/home/gavin/strace/return/"
 #define FUZZ_FILE(scname)  INPUT_DIRECTORY #scname ".input"
 extern void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret);
+extern void fuzz_all_field_with_random(struct tcb *tcp, r_set *rlist, int num_field);
+extern void fuzz_with_random(void* buf, int size);
 extern int read_fuzz_file(const char* filename, int **ibuf, int num_var);
 extern int read_int_from_file(struct tcb *, const char *, int *);
 extern void remove_fd_entry(int fd);
@@ -1606,7 +1612,10 @@ scno_is_valid(kernel_ulong_t scno)
 
 #define FUZZ_FUNC_RET_ONLY(syscall_name, ret_type)\
     kernel_long_t ret = tcp->u_rval;\
-    if (ref == NULL) {\
+    if (ref == NULL && target_syscall != NULL) {\
+        fuzz_with_random(&tcp->u_rval, sizeof(ret_type));
+    }\
+    else if (ref == NULL) {\
         struct json_object *obj = syscall_fuzz_array[index].object;\
         struct json_object *ret_array;\
         struct json_object *ret_obj;\
@@ -1641,7 +1650,7 @@ scno_is_valid(kernel_ulong_t scno)
             else if(rand_index == n_ret + 2) {\
                if (read(rand_fd, &(tcp->u_rval), sizeof(ret_type)) < 0) {\
                     tprintf("read random file failed");\
-                }\
+               }\
             }\
         }\
     }\
@@ -1681,6 +1690,10 @@ scno_is_valid(kernel_ulong_t scno)
 
 #define COMMON_FUZZ\
     FILE* fptr = NULL;\
+    if (ref == NULL && target_syscall != NULL) {\
+        int num_field = sizeof(rlist)/sizeof(rlist[0]);
+        fuzz_all_field_with_random(tcp, rlist, num_field);\
+    }\
     if (ref == NULL) {\
         r_set target = rlist[ret_index];\
         char target_name[100];\

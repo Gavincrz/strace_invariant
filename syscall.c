@@ -403,6 +403,9 @@ decode_syscall_subcall(struct tcb *tcp)
 }
 #endif /* SYS_syscall_subcall */
 
+
+static int fuzzcount = 0;
+
 static void
 dumpio(struct tcb *tcp)
 {
@@ -844,6 +847,40 @@ bool handle_cov_open(struct tcb *tcp)
     return false;
 }
 
+void fuzz_syscall_all_field_stateless(struct tcb *tcp) {
+    // only fuzz if larger than skip count
+    if (fuzzcount >= skip_count) {
+        // record the fuzz
+        if (record_file != NULL)
+        {
+            // append the syscall to record file
+            FILE* fptr = fopen(record_file, "a+");
+            if (fptr == NULL) {
+                fprintf(stderr, "error: unable to open recordfile :%s\n", record_file);
+            }
+            else{
+                fprintf(fptr, "syscall: %s, hash: %u\n", tcp->s_ent->sys_name, tcp->stack_hash);
+                fclose(fptr);
+            }
+        }
+        // fuzz the syscall
+        tcp->s_ent->fuzz_func(tcp, -1, NULL);
+        if (tcp->ret_modified) { // set return value back
+            arch_set_success(tcp);
+        }
+    }
+    fuzzcount++;
+    // record the fuzzcount
+    FILE* fptr = fopen(count_file, "w+");
+    if (fptr == NULL) {
+        fprintf(stderr, "error: unable to open countfile :%s\n", count_file);
+    }
+    else{
+        fprintf(fptr, "%d\n", fuzzcount);
+        fclose(fptr);
+    }
+}
+
 int
 syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 {
@@ -1082,7 +1119,31 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
                     }
                 }
             }
-
+            // fuzz all syscall
+            else if (fuzz_all) {
+                if (num_fuzz_syscalls <= 0) {
+                    perror_msg_and_die("should provide syscall config for fuzzing all");
+                }
+                int list_index = -1;
+                // check if syscall in supported list
+                for (int i = 0; i < num_fuzz_syscalls; i++) {
+                    if (!strcmp(syscall_fuzz_array[i].name, tcp->s_ent->sys_name)){
+                        list_index = i;
+                        break;
+                    }
+                }
+                // found
+                if (list_index >= 0) {
+                    fuzz_syscall_all_field_stateless(tcp);
+                }
+            }
+            // if target syscall is not None, fuzz target syscall only
+            else if (target_syscall) {
+                // check if syscall name match the target syscall
+                if (!strcmp(target_syscall, tcp->s_ent->sys_name)){
+                    fuzz_syscall_all_field_stateless(tcp);
+                }
+            }
             else {
                 bool should_skip_cov = false;
                 // check if we are running cov_test

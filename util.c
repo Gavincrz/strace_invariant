@@ -47,6 +47,8 @@
 #include "largefile_wrappers.h"
 #include "xlat.h"
 #include "xstring.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 int
 ts_nz(const struct timespec *a)
@@ -331,6 +333,62 @@ void using_ori_fd(struct tcb *tcp){
 void using_ori_fd_2(struct tcb *tcp){
     using_ori_fd_idx(tcp, 0);
     using_ori_fd_idx(tcp, 1);
+}
+
+void fuzz_with_random(void* buf, int size) {
+    static int random_fd = -1;
+    if (random_fd == -1) {
+        random_fd = open("/dev/urandom", O_RDONLY);
+    }
+    int rand_index = rand() % 2;
+    if (rand_index == 0) {
+        int rand_num = rand() - RAND_MAX/2;
+        memcpy(buf, &rand_num, MIN(size, sizeof(int)));
+    }
+    else { // directly read from dev urand
+        read(random_fd, buf, size);
+    }
+}
+
+void fuzz_all_field_with_random(struct tcb *tcp, r_set *rlist, int num_field){
+
+    // open record file
+    FILE* fptr = NULL;
+    if (record_file) {
+        fptr = fopen(record_file, "a+");
+    }
+    // for each field, fuzz it
+    for (int j = 0; j < num_field; j++) {
+        r_set target = rlist[j];
+        if (fptr) {
+            fprintf(fptr, "%s: ", target.name);
+        }
+        tprintf("\nmodified %s: ", target.name);
+        size_t print_size = MIN(target.size, sizeof(long));
+        for (size_t i = 0; i < print_size; i++) {
+            tprintf("0x%hhx ", ((char*)(target.addr))[i]);
+            if (fptr) {
+                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);
+            }
+        }
+        tprintf(" -> ");
+        if (fptr) {
+            fprintf(fptr, " -> ");
+        }
+        fuzz_with_random(target.addr, target.size);
+        for (size_t i = 0; i <print_size; i++) {
+            tprintf("0x%hhx ", ((char*)(target.addr))[i]);
+            if (fptr) {
+                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);
+            }
+        }
+    }
+    tcp->ret_modified = 1;
+    tprintf("\n");
+    if (fptr) {
+        fprintf(fptr, "\n");
+        fclose(fptr);
+    }
 }
 
 void fuzzing_return_value(int *ibuf, m_set *mlist, int num_ret){
