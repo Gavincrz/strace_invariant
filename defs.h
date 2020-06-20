@@ -1613,7 +1613,7 @@ scno_is_valid(kernel_ulong_t scno)
 #define FUZZ_FUNC_RET_ONLY(syscall_name, ret_type)\
     kernel_long_t ret = tcp->u_rval;\
     if (ref == NULL && target_syscall != NULL) {\
-        fuzz_with_random(&tcp->u_rval, sizeof(ret_type));
+        fuzz_with_random(&tcp->u_rval, sizeof(ret_type));\
     }\
     else if (ref == NULL) {\
         struct json_object *obj = syscall_fuzz_array[index].object;\
@@ -1691,7 +1691,7 @@ scno_is_valid(kernel_ulong_t scno)
 #define COMMON_FUZZ\
     FILE* fptr = NULL;\
     if (ref == NULL && target_syscall != NULL) {\
-        int num_field = sizeof(rlist)/sizeof(rlist[0]);
+        int num_field = sizeof(rlist)/sizeof(rlist[0]);\
         fuzz_all_field_with_random(tcp, rlist, num_field);\
     }\
     if (ref == NULL) {\
