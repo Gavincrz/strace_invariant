@@ -1914,7 +1914,7 @@ init(int argc, char *argv[])
 	if (count_file != NULL) {
 	    // remove and create a new count file
         remove(count_file);
-        int fd = open(count_file, O_CREAT, 0666);
+        int fd = open(count_file, O_CREAT|O_RDWR, 0666);
         if (fd == -1) {
             error_msg_and_die("unable to create count_file");
         }
