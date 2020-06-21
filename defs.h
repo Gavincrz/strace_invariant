@@ -1694,7 +1694,7 @@ scno_is_valid(kernel_ulong_t scno)
         int num_field = sizeof(rlist)/sizeof(rlist[0]);\
         fuzz_all_field_with_random(tcp, rlist, num_field);\
     }\
-    if (ref == NULL) {\
+    else if (ref == NULL) {\
         r_set target = rlist[ret_index];\
         char target_name[100];\
         strcpy(target_name, target.name);\
