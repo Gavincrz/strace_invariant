@@ -35,7 +35,7 @@
 #  include <libiberty/demangle.h>
 # endif
 #endif
-
+bool have_walked = false;
 char stack_buf[4096];
 
 /* murmur hash in c, copied from wikipedia */
@@ -203,7 +203,7 @@ output_call_cb(void *dummy,
 {
     char tmp[1024];
     strcpy(tmp,  "");
-
+    have_walked = true;
     if (symbol_name && (symbol_name[0] != '\0')) {
 #ifdef USE_DEMANGLE
         char *demangled_name =
@@ -399,11 +399,11 @@ unwind_tcb_output(struct tcb *tcp, bool print)
             unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
 	    }
         else {
-
+            have_walked = false;
             unwinder.tcb_walk(tcp, output_call_cb, print_error_cb, NULL);
         }
 	}
-	if (!print)
+	if (!print && have_walked)
     {
         uint32_t hash = murmur3_32((const uint8_t*)stack_buf, strlen(stack_buf), 2333);
         // replace strings

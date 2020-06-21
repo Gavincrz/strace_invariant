@@ -1078,7 +1078,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 	if (stack_trace_enabled)
 		unwind_tcb_print(tcp);
 #endif
-    if (!after_accept || (after_accept && accept_called)) { // do the fuzzing after accept called
+    if (!after_accept || (after_accept && accept_called) && tcp->stack_hash!=0) { // do the fuzzing after accept called
         if (tcp->s_ent->invariant && tcp->flags & TCB_INV_TAMPER){
             get_syscall_args(tcp);
             get_syscall_result(tcp);

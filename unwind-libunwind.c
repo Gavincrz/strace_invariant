@@ -505,7 +505,8 @@ walk(struct tcb *tcp,
 	symbol_name = xmalloc(symbol_name_size);
 
 	if (unw_init_remote(&cursor, libunwind_as, tcp->unwind_ctx) < 0)
-		perror_func_msg_and_die("cannot initialize libunwind");
+	    return;
+//		perror_func_msg_and_die("cannot initialize libunwind");
 
 	/* also reload the mem map */
 	struct proc_info* info = (struct proc_info*) tcp->unwind_ctx;
