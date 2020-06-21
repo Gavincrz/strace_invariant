@@ -1328,14 +1328,17 @@ FUZZ_FUNC(getsockopt)
     kernel_long_t ret = tcp->u_rval;
 
     tprintf("\ngetsockopt saved optlen = %d\n", saved);
+    tprintf("\ngetsockopt returned optlen = %d\n", optlen);
     r_set rlist[NUM_RET_GETSOCKOPT] = {{&ret, sizeof(int), "ret", 0, 0},
                                        {optval, saved, "optval", 0, 0},
                                        {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
     COMMON_FUZZ
 
+    tprintf("\ngetsockopt modified optlen = %d\n", optlen);
     // write back the value;
     tcp->u_rval = ret;
-    vm_write_mem(tcp->pid, &optlen, tcp->u_arg[4], sizeof(socklen_t));
+    int rc = vm_write_mem(tcp->pid, &optlen, tcp->u_arg[4], sizeof(socklen_t));
+    tprintf("\nwrite return code is  = %d\n", rc);
     vm_write_mem(tcp->pid, optval, tcp->u_arg[3], saved);
 
     // modify return value
