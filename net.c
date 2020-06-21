@@ -1334,7 +1334,7 @@ FUZZ_FUNC(getsockopt)
                                        {&optlen, sizeof(socklen_t), "optlen", 0, 0}};
     COMMON_FUZZ
 
-    tprintf("\ngetsockopt modified optlen = %d\n", optlen);
+    tprintf("\ngetsockopt modified optlen = %d, address is 0x%lx\n", optlen, tcp->u_arg[4]);
     // write back the value;
     tcp->u_rval = ret;
     int rc = vm_write_mem(tcp->pid, &optlen, tcp->u_arg[4], sizeof(socklen_t));
