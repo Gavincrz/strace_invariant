@@ -1678,7 +1678,7 @@ init(int argc, char *argv[])
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
 #ifdef ENABLE_STACKTRACE
-	    "kn:NQ:"
+	    "kn:N:Q:"
 #endif
 	    "a:Ab:B:cCdDe:E:fFg:GhH:iI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
