@@ -377,14 +377,14 @@ void print_field_content(size_t print_size, void* buf, FILE* fptr)
         long val_long = *(long *)buf;
         tprintf("(%ld)", val_long);
         if (fptr) {
-            fprintf("(%ld)", val_long);
+            fprintf(fptr,"(%ld)", val_long);
         }
     }
     else if (print_size == sizeof(int)) {
         int val_int = *(int *)buf;
         tprintf("(%d)", val_int);
         if (fptr) {
-            fprintf("(%d)", val_int);
+            fprintf(fptr, "(%d)", val_int);
         }
     }
 }
