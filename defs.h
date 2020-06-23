@@ -1669,38 +1669,10 @@ scno_is_valid(kernel_ulong_t scno)
         }\
     }\
     else {\
-        if (ref->field_index == -1) {\
-            if (ref->field_count != 1) {\
-                error_func_msg_and_die("filed count not equal to 1 for ret only syscall");\
-            }\
-            tcp->u_rval = ref->all_field_value[0];\
-        }\
-        else {\
-            if (ref->field_index != 0) {\
-                error_func_msg_and_die("filed index not equal to 0 for ret only syscall");\
-            }\
-            if (ref->min_or_max == 0) {\
-                tcp->u_rval = ref->value;\
-            }\
-            else if (ref->min_or_max == -1) {\
-                memset(&(tcp->u_rval), 0, sizeof(ret_type));\
-                ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = (char)0x80;\
-            }\
-            else if (ref->min_or_max == 1) {\
-                memset(&(tcp->u_rval), -1, sizeof(ret_type));\
-                ((char*)&(tcp->u_rval))[sizeof(ret_type)-1] = 0x7f;\
-            }\
-            else {\
-                error_func_msg_and_die("min_or_max field has value other than min max value");\
-            }\
-        }\
+        r_set rlist[1] = {{&ret, sizeof(ret_type), "ret", 0, 0}};\
+        fuzz_with_reference(tcp, rlist, 1, ref);\
     }\
     tcp->ret_modified = 1;\
-    if (record_file) {\
-        FILE* fptr = fopen(record_file, "a+");\
-        fprintf(fptr, "  return: %ld -> %ld \n", ret,  tcp->u_rval);\
-        fclose(fptr);\
-    }\
 
 #define COMMON_FUZZ\
     FILE* fptr = NULL;\
