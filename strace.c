@@ -1645,10 +1645,10 @@ void parse_and_store_ref_val(char* str_val, ref_v *ref_value)
     }
     else if (strncmp(str_val, "RAND", 4) == 0) { // speicify a random file name
         ref_value->type = R_TYPE_RANDOM;
-        strncpy(ref_value->file, value, 20);
+        strncpy(ref_value->file, str_val, 20);
     }
     else {
-        ref_value->type = R_TYPE_VAL
+        ref_value->type = R_TYPE_VAL;
         ref_value->val = strtol(str_val, NULL, 10);
     }
 }
@@ -1999,7 +1999,7 @@ init(int argc, char *argv[])
                 token = strtok (value, seps);
                 while (token != NULL) {
                     // parse and store one value
-                    parse_and_store_ref_val(token, &(fuzz_reference[ref_count].ref_values[field_count]))
+                    parse_and_store_ref_val(token, &(fuzz_reference[ref_count].ref_values[field_count]));
                     token = strtok (NULL, seps);
                     field_count++;
                 }
@@ -2007,7 +2007,7 @@ init(int argc, char *argv[])
             }
             else {
                 // store the value
-                parse_and_store_ref_val(value, &(fuzz_reference[ref_count].ref_values[field_index]))
+                parse_and_store_ref_val(value, &(fuzz_reference[ref_count].ref_values[field_index]));
             }
             fuzz_reference[ref_count].count = 0;
             /* Get the next line */
@@ -2454,7 +2454,7 @@ print_signalled(struct tcb *tcp, const int pid, int status)
 			WCOREDUMP(status) ? "(core dumped) " : "", pid);
 		struct rlimit limit;
         getrlimit(RLIMIT_CORE, &limit);
-        tprintf("soft = %d, hard = %d\n", limit.rlim_cur, limit.rlim_max);
+        tprintf("soft = %ld, hard = %ld\n", limit.rlim_cur, limit.rlim_max);
 		if (WCOREDUMP(status)){
 			// write to pid file
 			FILE *fptr = fopen(OUT_PID_FILE, "w+");

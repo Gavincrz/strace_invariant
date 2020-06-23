@@ -547,7 +547,7 @@ extern void using_ori_fd(struct tcb *tcp);
 extern void using_ori_fd_2(struct tcb *tcp);
 extern void using_ori_fd_idx(struct tcb *tcp, int idx);
 extern void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry* ref);
-extern void print_ref_val(ref_v ref_value, FILE* fptr);
+extern void print_ref_val(ref_v *ref_value, FILE* fptr);
 
 extern void set_sortby(const char *);
 extern void set_overhead(int);
