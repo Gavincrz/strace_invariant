@@ -359,14 +359,11 @@ void fuzz_with_random(void* buf, int size) {
     if (random_fd == -1) {
         random_fd = open("/dev/urandom", O_RDONLY);
     }
-    int rand_index = rand() % 2;
-    if (rand_index == 0) {
-        int rand_num = rand() - RAND_MAX/2;
-        memcpy(buf, &rand_num, MIN(size, sizeof(int)));
+
+    if (read(random_fd, buf, size) != size) {
+        perror_msg_and_die("read from random failed!");
     }
-    else { // directly read from dev urand
-        read(random_fd, buf, size);
-    }
+
 }
 
 void print_convert_sign(FILE *fptr) {
@@ -376,7 +373,7 @@ void print_convert_sign(FILE *fptr) {
     }
 }
 
-void print_target_name(FILE *fptr, char* name) {
+void print_target_name(FILE *fptr, const char* name) {
     if (fptr) {
         fprintf(fptr, "%s: ", name);
     }
@@ -438,13 +435,13 @@ void fuzz_one_field_with_reference(r_set* target, ref_v* ref_val, FILE* fptr) {
     print_convert_sign(fptr);
     // check if target is an array:
     if (target->num_elem == 0) {
-        fuzz_buf_with_reference(target->addr, target->size, ref_val);
+        fuzz_buf_with_ref_val(target->addr, target->size, ref_val);
     }
     else {
         // fuzz each element with the same value
         void* ptr = target->addr;
         for (int i = 0; i < target->num_elem; i++) {
-            fuzz_buf_with_reference(ptr, target->size, ref_val);
+            fuzz_buf_with_ref_val(ptr, target->size, ref_val);
             // move to the next elem
             ptr += target->distance;
         }
@@ -466,13 +463,13 @@ void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry
         }
         for (int j = 0; j < ref->field_count; j++) {
             r_set* target = &(rlist[j]);
-            fuzz_one_field_with_reference(target, &(ref->ref_values[j]), fptr)
+            fuzz_one_field_with_reference(target, &(ref->ref_values[j]), fptr);
         }
         tcp->ret_modified = 1;
     }
     else { // fuzz specific field
         r_set* target = &(rlist[filed_index]);
-        fuzz_one_field_with_reference(target, &(ref->ref_values[filed_index]), fptr)
+        fuzz_one_field_with_reference(target, &(ref->ref_values[filed_index]), fptr);
         if (field_index == 0) {
             tcp->ret_modified = 1;
         }
