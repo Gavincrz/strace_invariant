@@ -1635,6 +1635,24 @@ get_os_release(void)
 	return rel;
 }
 
+void parse_and_store_ref_val(char* str_val, ref_v *ref_value)
+{
+    if (strcmp(str_val, "MIN") == 0) {
+        ref_value->type = R_TYPE_MIN;
+    }
+    else if (strcmp(str_val, "MAX") == 0) {
+        ref_value->type = R_TYPE_MAX;
+    }
+    else if (strncmp(str_val, "RAND", 4) == 0) { // speicify a random file name
+        ref_value->type = R_TYPE_RANDOM;
+        strncpy(ref_value->file, value, 20);
+    }
+    else {
+        ref_value->type = R_TYPE_VAL
+        ref_value->val = strtol(str_val, NULL, 10);
+    }
+}
+
 static void
 set_sighandler(int signo, void (*sighandler)(int), struct sigaction *oldact)
 {
@@ -1979,27 +1997,17 @@ init(int argc, char *argv[])
                 char* token;
                 int field_count = 0;
                 token = strtok (value, seps);
-                while (token != NULL)
-                {
-                    long temp_val = strtol(token, NULL, 10);
-                    fuzz_reference[ref_count].all_field_value[field_count] = temp_val;
+                while (token != NULL) {
+                    // parse and store one value
+                    parse_and_store_ref_val(token, &(fuzz_reference[ref_count].ref_values[field_count]))
                     token = strtok (NULL, seps);
                     field_count++;
                 }
                 fuzz_reference[ref_count].field_count = field_count;
             }
-            else { // parse one value
+            else {
                 // store the value
-                if (strcmp(value, "MIN") == 0) {
-                    fuzz_reference[ref_count].min_or_max = -1;
-                }
-                else if (strcmp(value, "MAX") == 0) {
-                    fuzz_reference[ref_count].min_or_max = 1;
-                }
-                else {
-                    fuzz_reference[ref_count].min_or_max = 0;
-                    fuzz_reference[ref_count].value = strtol(value, NULL, 10);
-                }
+                parse_and_store_ref_val(value, &(fuzz_reference[ref_count].ref_values[field_index]))
             }
             fuzz_reference[ref_count].count = 0;
             /* Get the next line */
@@ -2013,24 +2021,19 @@ init(int argc, char *argv[])
 
         // print out the result to show correctness
         for (int i = 0; i < reference_count; i++) {
+            int field_index = fuzz_reference[i].field_index;
             fprintf(stderr, "%s %u %d ", fuzz_reference[i].syscallname,
-                    fuzz_reference[i].stack_hash, fuzz_reference[i].field_index);
-            if (fuzz_reference[i].field_index == -1) {
+                    fuzz_reference[i].stack_hash, field_index);
+            if (field_index == -1) {
                 for (int j = 0; j < fuzz_reference[i].field_count; j++) {
-                    fprintf(stderr, "%ld@", fuzz_reference[i].all_field_value[j]);
+                    print_ref_val(&(fuzz_reference[i].ref_values[j]), stderr);
+                    fprintf(stderr, "@");
                 }
                 fprintf(stderr, "\n");
             }
             else {
-                if (fuzz_reference[i].min_or_max == 0) {
-                    fprintf(stderr, "%ld\n", fuzz_reference[i].value);
-                }
-                if (fuzz_reference[i].min_or_max == -1) {
-                    fprintf(stderr, "MIN\n");
-                }
-                if (fuzz_reference[i].min_or_max == 1) {
-                    fprintf(stderr, "MAX\n");
-                }
+                print_ref_val(&(fuzz_reference[i].ref_values[field_index]), stderr);
+                fprintf(stderr, "\n");
             }
         }
     }

@@ -335,6 +335,25 @@ void using_ori_fd_2(struct tcb *tcp){
     using_ori_fd_idx(tcp, 1);
 }
 
+
+void print_ref_val(ref_v *ref_value, FILE* fptr)
+{
+    if (!fptr) return;
+
+    if (ref_value->type == R_TYPE_VAL) {
+        fprintf(fptr, "%ld", ref_value->val);
+    }
+    else if (ref_value->type == R_TYPE_MIN) {
+        fprintf(fptr, "MIN");
+    }
+    else if (ref_value->type == R_TYPE_MAX) {
+        fprintf(fptr, "MAX");
+    }
+    else if (ref_value->type == R_TYPE_RANDOM) {
+        fprintf(fptr, "%s", ref_value->file);
+    }
+}
+
 void fuzz_with_random(void* buf, int size) {
     static int random_fd = -1;
     if (random_fd == -1) {
@@ -390,18 +409,21 @@ void print_field_content(size_t print_size, void* buf, FILE* fptr)
 }
 
 
-void fuzz_buf_with_reference(void* buf, size_t size, ref_entry* ref) {
+void fuzz_buf_with_ref_val(void* buf, size_t size, ref_v* ref_val) {
     // use the value directly
-    if (ref->min_or_max == 0) {
-        memcpy(buf, &ref->value, MIN(size, sizeof(long)));
+    if (ref_val->type == R_TYPE_VAL) {
+        memcpy(buf, &(ref_val->val), MIN(size, sizeof(long)));
     } // fuzz with min value
-    else if (ref->min_or_max == -1 && size > 0) {
+    else if (ref_val->type == R_TYPE_MIN && size > 0) {
         memset(buf, 0x00, size);
         ((char*)buf)[size-1] = (char)0x80;
     } // fuzz with max
-    else if (ref->min_or_max == 1 && size > 0) {
+    else if (ref_val->type == R_TYPE_MAX && size > 0) {
         memset(buf, -1, size);
         ((char*)buf)[size-1] = 0x7f;
+    }
+    else if (ref_val->type == R_TYPE_RANDOM) {
+        // TODO: handle random numbers
     }
     else {
         error_func_msg_and_die("min_or_max field has value other than min max value");
@@ -409,37 +431,49 @@ void fuzz_buf_with_reference(void* buf, size_t size, ref_entry* ref) {
 }
 
 
+void fuzz_one_field_with_reference(r_set* target, ref_v* ref_val, FILE* fptr) {
+    print_target_name(fptr, target->name);
+    size_t print_size = MIN(target->size, sizeof(long));
+    print_field_content(print_size, target->addr, fptr);
+    print_convert_sign(fptr);
+    // check if target is an array:
+    if (target->num_elem == 0) {
+        fuzz_buf_with_reference(target->addr, target->size, ref_val);
+    }
+    else {
+        // fuzz each element with the same value
+        void* ptr = target->addr;
+        for (int i = 0; i < target->num_elem; i++) {
+            fuzz_buf_with_reference(ptr, target->size, ref_val);
+            // move to the next elem
+            ptr += target->distance;
+        }
+    }
+    print_field_content(print_size, target->addr, fptr);
+}
+
 void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry* ref)
 {
     FILE* fptr = NULL;
     if (record_file) {
         fptr = fopen(record_file, "a+");
     }
-    if (ref->field_index == -1) {
-        // means fuzz all the field
-
+    int filed_index = ref->field_index;
+    if (filed_index == -1) { // -1 means fuzz all the field
+        // check if field_count match rlist size
+        if (ref->field_count != num_field) {
+            error_func_msg_and_die("filed count not equal rlist");
+        }
+        for (int j = 0; j < ref->field_count; j++) {
+            r_set* target = &(rlist[j]);
+            fuzz_one_field_with_reference(target, &(ref->ref_values[j]), fptr)
+        }
+        tcp->ret_modified = 1;
     }
     else { // fuzz specific field
-        r_set target = rlist[ref->field_index];
-        print_target_name(fptr, target.name);
-        size_t print_size = MIN(target.size, sizeof(long));
-        print_field_content(print_size, target.addr, fptr);
-        print_convert_sign(fptr);
-        // check if target is an array:
-        if (target.num_elem == 0) {
-            fuzz_buf_with_reference(target.addr, target.size, ref);
-        }
-        else {
-            // fuzz each element with the same value
-            void* ptr = target.addr;
-            for (int i = 0; i < target.num_elem; i++) {
-                fuzz_buf_with_reference(ptr, target.size, ref);
-                // move to the next elem
-                ptr += target.distance;
-            }
-        }
-        print_field_content(print_size, target.addr, fptr);
-        if (ref->field_index == 0) {
+        r_set* target = &(rlist[filed_index]);
+        fuzz_one_field_with_reference(target, &(ref->ref_values[filed_index]), fptr)
+        if (field_index == 0) {
             tcp->ret_modified = 1;
         }
     }

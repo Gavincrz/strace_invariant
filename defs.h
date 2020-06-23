@@ -212,14 +212,25 @@ struct inject_opts {
 	struct inject_data data;
 };
 
+typedef enum {
+    R_TYPE_MIN,
+    R_TYPE_MAX,
+    R_TYPE_VAL,
+    R_TYPE_RANDOM,
+} ref_t;
+
+typedef struct ref_v {
+    long val;
+    char file[20];
+    ref_t type;
+} ref_v;
+
 typedef struct ref_entry {
     char syscallname[40];
     uint32_t stack_hash;
-    int field_index;
-    long value;
-    int min_or_max; // -1 min, 0 use value instead, 1 max
+    int field_index; // -1 means all of them
+    ref_v ref_values[40];
     int count; // number of time encountered
-    long all_field_value[40];
     int field_count;
 } ref_entry;
 
@@ -536,6 +547,7 @@ extern void using_ori_fd(struct tcb *tcp);
 extern void using_ori_fd_2(struct tcb *tcp);
 extern void using_ori_fd_idx(struct tcb *tcp, int idx);
 extern void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry* ref);
+extern void print_ref_val(ref_v ref_value, FILE* fptr);
 
 extern void set_sortby(const char *);
 extern void set_overhead(int);
@@ -1773,53 +1785,8 @@ scno_is_valid(kernel_ulong_t scno)
         }\
     }\
     else {\
-        if (record_file) {\
-            fptr = fopen(record_file, "a+");\
-        }\
-        if (ref->field_index == -1) {\
-            if (ref->field_count != sizeof(rlist)/sizeof(rlist[0])) {\
-                error_func_msg_and_die("filed count not equal rlist");\
-            }\
-            for (int j = 0; j < ref->field_count; j++) {\
-                r_set target = rlist[j];\
-                if (fptr) {\
-                    fprintf(fptr, "%s: ", target.name);\
-                }\
-                tprintf("\nmodified %s: ", target.name);\
-                size_t print_size = MIN(target.size, sizeof(long));\
-                for (size_t i = 0; i < print_size; i++) {\
-                    tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-                    if (fptr) {\
-                        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
-                    }\
-                }\
-                tprintf(" -> ");\
-                if (fptr) {\
-                    fprintf(fptr, " -> ");\
-                }\
-                memcpy(target.addr, &(ref->all_field_value[j]), MIN(target.size, sizeof(long)));\
-                for (size_t i = 0; i <print_size; i++) {\
-                    tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-                    if (fptr) {\
-                        fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
-                    }\
-                }\
-                tprintf("(%ld)\n", ref->all_field_value[j]);\
-                if (fptr) {\
-                    fprintf(fptr, "(%ld)\n", ref->all_field_value[j]);\
-                }\
-            }\
-            tcp->ret_modified = 1;\
-        }\
-        else {\
-            int num_field = sizeof(rlist)/sizeof(rlist[0]);\
-            fuzz_with_reference(tcp, rlist, num_field, ref);\
-        }\
-        tprintf("\n");\
-        if (fptr) {\
-            fprintf(fptr, "\n");\
-            fclose(fptr);\
-        }\
+        int num_field = sizeof(rlist)/sizeof(rlist[0]);\
+        fuzz_with_reference(tcp, rlist, num_field, ref);\
     }\
 
 
