@@ -455,8 +455,8 @@ void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry
     if (record_file) {
         fptr = fopen(record_file, "a+");
     }
-    int filed_index = ref->field_index;
-    if (filed_index == -1) { // -1 means fuzz all the field
+    int field_index = ref->field_index;
+    if (field_index == -1) { // -1 means fuzz all the field
         // check if field_count match rlist size
         if (ref->field_count != num_field) {
             error_func_msg_and_die("filed count not equal rlist");
@@ -468,8 +468,8 @@ void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry
         tcp->ret_modified = 1;
     }
     else { // fuzz specific field
-        r_set* target = &(rlist[filed_index]);
-        fuzz_one_field_with_reference(target, &(ref->ref_values[filed_index]), fptr);
+        r_set* target = &(rlist[field_index]);
+        fuzz_one_field_with_reference(target, &(ref->ref_values[field_index]), fptr);
         if (field_index == 0) {
             tcp->ret_modified = 1;
         }
