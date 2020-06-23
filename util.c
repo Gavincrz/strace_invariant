@@ -350,8 +350,108 @@ void fuzz_with_random(void* buf, int size) {
     }
 }
 
-void fuzz_all_field_with_random(struct tcb *tcp, r_set *rlist, int num_field){
+void print_convert_sign(FILE *fptr) {
+    tprintf(" -> ");
+    if (fptr) {
+        fprintf(fptr, " -> ");
+    }
+}
 
+void print_target_name(FILE *fptr, char* name) {
+    if (fptr) {
+        fprintf(fptr, "%s: ", name);
+    }
+    tprintf("\nmodified %s: ", name);
+}
+
+void print_field_content(size_t print_size, void* buf, FILE* fptr)
+{
+    for (size_t i = 0; i < print_size; i++) {
+        tprintf("0x%hhx ", ((char*)(buf))[i]);
+        if (fptr) {
+            fprintf(fptr, "0x%hhx ", ((char*)(buf))[i]);
+        }
+    }
+    // print the decimal value if size fit
+    if (print_size == sizeof(long)) {
+        long val_long = *(long *)buf;
+        tprintf("(%ld)", val_long);
+        if (fptr) {
+            fprintf("(%ld)", val_long);
+        }
+    }
+    else if (print_size == sizeof(int)) {
+        int val_int = *(int *)buf;
+        tprintf("(%d)", val_int);
+        if (fptr) {
+            fprintf("(%d)", val_int);
+        }
+    }
+}
+
+
+void fuzz_buf_with_reference(void* buf, size_t size, ref_entry* ref) {
+    // use the value directly
+    if (ref->min_or_max == 0) {
+        memcpy(buf, &ref->value, MIN(size, sizeof(long)));
+    } // fuzz with min value
+    else if (ref->min_or_max == -1 && size > 0) {
+        memset(buf, 0x00, size);
+        ((char*)buf)[size-1] = (char)0x80;
+    } // fuzz with max
+    else if (ref->min_or_max == 1 && size > 0) {
+        memset(buf, -1, size);
+        ((char*)buf)[size-1] = 0x7f;
+    }
+    else {
+        error_func_msg_and_die("min_or_max field has value other than min max value");
+    }
+}
+
+
+void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry* ref)
+{
+    FILE* fptr = NULL;
+    if (record_file) {
+        fptr = fopen(record_file, "a+");
+    }
+    if (ref->field_index == -1) {
+        // means fuzz all the field
+
+    }
+    else { // fuzz specific field
+        r_set target = rlist[ref->field_index];
+        print_target_name(fptr, target.name);
+        size_t print_size = MIN(target.size, sizeof(long));
+        print_field_content(print_size, target.addr, fptr);
+        print_convert_sign(fptr);
+        // check if target is an array:
+        if (target.num_elem == 0) {
+            fuzz_buf_with_reference(target.addr, target.size, ref);
+        }
+        else {
+            // fuzz each element with the same value
+            void* ptr = target.addr;
+            for (int i = 0; i < target.num_elem; i++) {
+                fuzz_buf_with_reference(ptr, target.size, ref);
+                // move to the next elem
+                ptr += target.distance;
+            }
+        }
+        print_field_content(print_size, target.addr, fptr);
+        if (ref->field_index == 0) {
+            tcp->ret_modified = 1;
+        }
+    }
+
+    tprintf("\n");
+    if (fptr) {
+        fprintf(fptr, "\n");
+        fclose(fptr);
+    }
+}
+
+void fuzz_all_field_with_random(struct tcb *tcp, r_set *rlist, int num_field){
     // open record file
     FILE* fptr = NULL;
     if (record_file) {
@@ -360,30 +460,15 @@ void fuzz_all_field_with_random(struct tcb *tcp, r_set *rlist, int num_field){
     // for each field, fuzz it
     for (int j = 0; j < num_field; j++) {
         r_set target = rlist[j];
-        if (fptr) {
-            fprintf(fptr, "%s: ", target.name);
-        }
-        tprintf("\nmodified %s: ", target.name);
+        print_target_name(fptr, target.name);
         size_t print_size = MIN(target.size, sizeof(long));
-        for (size_t i = 0; i < print_size; i++) {
-            tprintf("0x%hhx ", ((char*)(target.addr))[i]);
-            if (fptr) {
-                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);
-            }
-        }
-        tprintf(" -> ");
-        if (fptr) {
-            fprintf(fptr, " -> ");
-        }
+        print_field_content(print_size, target.addr, fptr);
+        print_convert_sign(fptr);
         fuzz_with_random(target.addr, target.size);
-        for (size_t i = 0; i <print_size; i++) {
-            tprintf("0x%hhx ", ((char*)(target.addr))[i]);
-            if (fptr) {
-                fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);
-            }
-        }
+        print_field_content(print_size, target.addr, fptr);
     }
     tcp->ret_modified = 1;
+
     tprintf("\n");
     if (fptr) {
         fprintf(fptr, "\n");

@@ -208,7 +208,7 @@ FUZZ_FUNC(epoll_wait)
     r_set rlist[NUM_RET_EPOLL_WAIT] = {{&ret, sizeof(int), "ret", 0, 0},
                                        FUZZ_SET_ARRAY(events[0].events, "events",
                                                (int)maxevents, sizeof(struct epoll_event)),
-                                       FUZZ_SET_ARRAY(events[0].data.fd, "data",
+                                       FUZZ_SET_ARRAY(events[0].data, "data",
                                                (int)maxevents, sizeof(struct epoll_event))};
 
     COMMON_FUZZ

@@ -535,6 +535,8 @@ extern fd_replace_entry* get_fd_entry(int newfd);
 extern void using_ori_fd(struct tcb *tcp);
 extern void using_ori_fd_2(struct tcb *tcp);
 extern void using_ori_fd_idx(struct tcb *tcp, int idx);
+extern void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry* ref);
+
 extern void set_sortby(const char *);
 extern void set_overhead(int);
 
@@ -1810,45 +1812,8 @@ scno_is_valid(kernel_ulong_t scno)
             tcp->ret_modified = 1;\
         }\
         else {\
-            r_set target = rlist[ref->field_index];\
-            if (fptr) {\
-                fprintf(fptr, "%s: ", target.name);\
-            }\
-            tprintf("\nmodified %s: ", target.name);\
-            size_t print_size = MIN(target.size, sizeof(long));\
-            for (size_t i = 0; i < print_size; i++) {\
-                tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-                if (fptr) {\
-                    fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
-                }\
-            }\
-            tprintf(" -> ");\
-            if (fptr) {\
-                fprintf(fptr, " -> ");\
-            }\
-            if (ref->min_or_max == 0) {\
-                memcpy(target.addr, &ref->value, MIN(target.size, sizeof(long)));\
-            }\
-            else if (ref->min_or_max == -1 && target.size > 0) {\
-                memset(target.addr, 0x00, target.size);\
-                ((char*)target.addr)[target.size-1] = (char)0x80;\
-            }\
-            else if (ref->min_or_max == 1 && target.size > 0) {\
-                memset(target.addr, -1, target.size);\
-                ((char*)target.addr)[target.size-1] = 0x7f;\
-            }\
-            else {\
-                error_func_msg_and_die("min_or_max field has value other than min max value");\
-            }\
-            if (ref->field_index == 0) {\
-                tcp->ret_modified = 1;\
-            }\
-            for (size_t i = 0; i <print_size; i++) {\
-                tprintf("0x%hhx ", ((char*)(target.addr))[i]);\
-                if (fptr) {\
-                    fprintf(fptr, "0x%hhx ", ((char*)(target.addr))[i]);\
-                }\
-            }\
+            int num_field = sizeof(rlist)/sizeof(rlist[0]);\
+            fuzz_with_reference(tcp, rlist, num_field, ref);\
         }\
         tprintf("\n");\
         if (fptr) {\
