@@ -1671,7 +1671,7 @@ scno_is_valid(kernel_ulong_t scno)
     else {\
         r_set rlist[1] = {{&ret, sizeof(ret_type), "ret", 0, 0}};\
         fuzz_with_reference(tcp, rlist, 1, ref);\
-        tcp->u_rval = ret;
+        tcp->u_rval = ret;\
     }\
     tcp->ret_modified = 1;\
 
