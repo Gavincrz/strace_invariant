@@ -355,11 +355,6 @@ void print_ref_val(ref_v *ref_value, FILE* fptr)
 }
 
 void fuzz_with_random(void* buf, int size) {
-    static int random_fd = -1;
-    if (random_fd == -1) {
-        random_fd = open("/dev/urandom", O_RDONLY);
-    }
-
     int rand_size = size;
     // pick a length to fuzz, [1, size-1], if size == long
     if (size == sizeof(long)) {
@@ -368,9 +363,9 @@ void fuzz_with_random(void* buf, int size) {
 
     memset(buf, 0, size);
 
-    ssize_t read_ret = read(random_fd, buf, rand_size);
-    if (read_ret != size) {
-        perror_msg_and_die("read from random failed!, read_ret:%ld, size=%d", read_ret, size);
+    char *char_buf = (char*) buf;
+    for (int i = 0; i < rand_size; i++) {
+        char_buf[i] = rand() % 256;
     }
 }
 

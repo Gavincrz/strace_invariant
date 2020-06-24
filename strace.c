@@ -1334,9 +1334,6 @@ parse_fuzz_config(char* buffer, size_t length) {
     syscall_fuzz_array = (struct syscall_elem *)malloc(sizeof(struct syscall_elem)
             * num_fuzz_syscalls);
 
-	// seed the rand
-	srand((unsigned int)time(NULL));
-
     for (int i = 0; i < num_fuzz_syscalls; i++) {
         struct json_object *name;
         syscall = json_object_array_get_idx(syscalls, i);
@@ -1953,6 +1950,9 @@ init(int argc, char *argv[])
         }
         close(fd);
 	}
+
+    // seed the rand
+    srand((unsigned int)time(NULL));
 
     if (rand_fd == -1) {
         rand_fd = open("/dev/urandom", O_RDONLY);
