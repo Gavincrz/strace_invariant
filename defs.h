@@ -221,7 +221,7 @@ typedef enum {
 
 typedef struct ref_v {
     long val;
-    char file[20];
+    char file[40];
     ref_t type;
 } ref_v;
 

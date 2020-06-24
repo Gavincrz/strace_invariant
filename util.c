@@ -360,10 +360,77 @@ void fuzz_with_random(void* buf, int size) {
         random_fd = open("/dev/urandom", O_RDONLY);
     }
 
-    if (read(random_fd, buf, size) != size) {
-        perror_msg_and_die("read from random failed!");
+    int rand_size = size;
+    // pick a length to fuzz, [1, size-1], if size == long
+    if (size == sizeof(long)) {
+        rand_size = (rand() % (size - 1)) + 1;
     }
 
+    memset(buf, 0, size);
+
+    if (read(random_fd, buf, rand_size) != size) {
+        perror_msg_and_die("read from random failed!");
+    }
+}
+
+void fuzz_with_random_file(void* buf, int size, char* filename) {
+    // first check if file exist
+    struct stat st;
+    int ret = stat(filename, &st);
+
+    if (ret == -1) { // stat failed
+        if (errno == ENOENT) { // file dose not exist, create one
+            int fd = open(filename, O_RDWR|O_CREAT);
+            if (fd == -1) {
+                perror_msg_and_die("can not create file %s", filename);
+            }
+            // fuzz the field with random value
+            fuzz_with_random(buf, size);
+            // write the content to file
+            ssize_t write_ret = write(fd, buf, size);
+            if (write_ret != size) {
+                perror_msg_and_die("write value failed, size = %d, retsize = %d", size, write_ret);
+            }
+            close(fd);
+        }
+        else {
+            perror_msg_and_die("stat %s failed with other reasons", filename);
+        }
+    }
+    else if (ret == 0){ // file exist
+        // check if file size is enough
+        off_t file_size = st.st_size;
+        if (file_size < size) {
+            // write 2 * size content to the file
+            size_t append_size = size * 2;
+            char * tempbuf = (char*)malloc(append_size);
+            // fill the buffer with random
+            fuzz_with_random(tempbuf, append_size);
+            // append to file
+            int fd = open(filename, O_RDWR | O_APPEND);
+            ssize_t write_ret = write(fd, tempbuf, append_size);
+            if (write_ret != append_size) {
+                perror_msg_and_die("append file failed, size = %d, write = %d", size, write_ret);
+            }
+            // then read the file from beginning to the targe buf
+            lseek(fd, 0, SEEK_SET);
+
+            ssize_t read_ret = read(fd, buf, size);
+            if (read_ret != size) {
+                perror_msg_and_die("read value after append failed, size = %d, retsize = %d", size, read_ret);
+            }
+            close(fd);
+            free(tempbuf);
+        }
+        else { // file size is enough, just use the file content to fill the buff
+            int fd = open(filename, O_RDWR);
+            ssize_t read_ret = read(fd, buf, size);
+            if (read_ret != size) {
+                perror_msg_and_die("read value failed, size = %d, retsize = %d", size, read_ret);
+            }
+            close(fd);
+        }
+    }
 }
 
 void print_convert_sign(FILE *fptr) {
@@ -420,7 +487,7 @@ void fuzz_buf_with_ref_val(void* buf, size_t size, ref_v* ref_val) {
         ((char*)buf)[size-1] = 0x7f;
     }
     else if (ref_val->type == R_TYPE_RANDOM) {
-        // TODO: handle random numbers
+        fuzz_with_random_file(buf, size, ref_val->file);
     }
     else {
         error_func_msg_and_die("min_or_max field has value other than min max value");

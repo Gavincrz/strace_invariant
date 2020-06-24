@@ -1643,7 +1643,7 @@ void parse_and_store_ref_val(char* str_val, ref_v *ref_value)
     else if (strcmp(str_val, "MAX") == 0) {
         ref_value->type = R_TYPE_MAX;
     }
-    else if (strncmp(str_val, "RAND", 4) == 0) { // speicify a random file name
+    else if (strstr(str_val, "RAND")) { // speicify a random file name
         ref_value->type = R_TYPE_RANDOM;
         strncpy(ref_value->file, str_val, 20);
     }
