@@ -420,10 +420,10 @@ FUZZ_FUNC(select)
     fd_set *exceptfds = (fd_set*)malloc(fd_size);
     struct timeval *timeout = (struct timeval*)malloc(sizeof(struct timeval));
 
-    tfetch_mem(tcp, tcp->u_arg[1], fd_size, readfds);
-    tfetch_mem(tcp, tcp->u_arg[2], fd_size, writefds);
-    tfetch_mem(tcp, tcp->u_arg[3], fd_size, exceptfds);
-    tfetch_mem(tcp, tcp->u_arg[4], sizeof(struct timeval), timeout);
+    umoven(tcp, tcp->u_arg[1], fd_size, readfds);
+    umoven(tcp, tcp->u_arg[2], fd_size, writefds);
+    umoven(tcp, tcp->u_arg[3], fd_size, exceptfds);
+    umoven(tcp, tcp->u_arg[4], sizeof(struct timeval), timeout);
 
     kernel_long_t ret = tcp->u_rval;
 
@@ -440,6 +440,7 @@ FUZZ_FUNC(select)
     vm_write_mem(tcp->pid, writefds, tcp->u_arg[2], fd_size);
     vm_write_mem(tcp->pid, exceptfds, tcp->u_arg[3], fd_size);
     vm_write_mem(tcp->pid, timeout, tcp->u_arg[4], sizeof(struct timeval));
+
     free(readfds);
     free(writefds);
     free(exceptfds);

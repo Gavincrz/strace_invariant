@@ -173,8 +173,8 @@ FUZZ_FUNC(wait4)
     int wstatus;
     struct rusage rusage;
     // read the original data
-    tfetch_mem(tcp, tcp->u_arg[1], sizeof(int), &wstatus);
-    tfetch_mem(tcp, tcp->u_arg[3], sizeof(struct rusage), &rusage);
+    umoven(tcp, tcp->u_arg[1], sizeof(int), &wstatus);
+    umoven(tcp, tcp->u_arg[3], sizeof(struct rusage), &rusage);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_WAIT4] = {{&ret, sizeof(pid_t), "ret", 0, 0},

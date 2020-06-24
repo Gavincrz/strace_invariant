@@ -359,8 +359,8 @@ FUZZ_FUNC(accept)
     socklen_t addrlen, ulen;
     ulen = get_tcb_priv_ulong(tcp);
     void *buf = malloc(ulen);
-    tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
-    tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
+    umoven(tcp, tcp->u_arg[1], ulen, buf);
+    umoven(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_ACCEPT] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -388,8 +388,8 @@ FUZZ_FUNC(accept4)
     socklen_t addrlen, ulen;
     ulen = get_tcb_priv_ulong(tcp);
     void *buf = malloc(ulen);
-    tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
-    tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
+    umoven(tcp, tcp->u_arg[1], ulen, buf);
+    umoven(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_ACCEPT] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -517,8 +517,8 @@ FUZZ_FUNC(recvfrom)
     socklen_t addrlen, ulen;
     ulen = get_tcb_priv_ulong(tcp);
     void *buf = malloc(ulen);
-    tfetch_mem(tcp, tcp->u_arg[4], ulen, buf);
-    tfetch_mem(tcp, tcp->u_arg[5], sizeof(socklen_t), &addrlen);
+    umoven(tcp, tcp->u_arg[4], ulen, buf);
+    umoven(tcp, tcp->u_arg[5], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_RECVFROM] = {{&ret, sizeof(ssize_t), "ret", 0, 0},
@@ -704,8 +704,8 @@ FUZZ_FUNC(getsockname)
     socklen_t addrlen, ulen;
     ulen = get_tcb_priv_ulong(tcp);
     void *buf = malloc(ulen);
-    tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
-    tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
+    umoven(tcp, tcp->u_arg[1], ulen, buf);
+    umoven(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -733,8 +733,8 @@ FUZZ_FUNC(getpeername)
     socklen_t addrlen, ulen;
     ulen = get_tcb_priv_ulong(tcp);
     void *buf = malloc(ulen);
-    tfetch_mem(tcp, tcp->u_arg[1], ulen, buf);
-    tfetch_mem(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
+    umoven(tcp, tcp->u_arg[1], ulen, buf);
+    umoven(tcp, tcp->u_arg[2], sizeof(socklen_t), &addrlen);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -809,10 +809,10 @@ FUZZ_FUNC(pipe)
     kernel_long_t ret = tcp->u_rval;
     int pair[2];
     unsigned int len = sizeof(pair);
-    tfetch_mem(tcp, tcp->u_arg[0], len, &pair);
+    umoven(tcp, tcp->u_arg[0], len, &pair);
 
     r_set rlist[NUM_RET_PIPE] = {{&ret, sizeof(int), "ret", 0, 0},
-                                 {&pair, len, "pair", 0, 0}};
+                                 {&pair[0], sizeof(int), "pair", 2, sizeof(int)}};
 
 
     COMMON_FUZZ
@@ -837,10 +837,10 @@ FUZZ_FUNC(pipe2)
     kernel_long_t ret = tcp->u_rval;
     int pair[2];
     unsigned int len = sizeof(pair);
-    tfetch_mem(tcp, tcp->u_arg[0], len, &pair);
+    umoven(tcp, tcp->u_arg[0], len, &pair);
 
     r_set rlist[NUM_RET_PIPE] = {{&ret, sizeof(int), "ret", 0, 0},
-                                 {&pair, len, "pair", 0, 0}};
+                                 {&pair[0], sizeof(int), "pair", 2, sizeof(int)}};
 
     COMMON_FUZZ
 
@@ -883,10 +883,10 @@ FUZZ_FUNC(socketpair)
     kernel_long_t ret = tcp->u_rval;
     int sv[2];
     unsigned int len = sizeof(sv);
-    tfetch_mem(tcp, tcp->u_arg[3], len, &sv);
+    umoven(tcp, tcp->u_arg[3], len, &sv);
 
     r_set rlist[NUM_RET_SOCKETPAIR] = {{&ret, sizeof(int), "ret", 0, 0},
-                                       {&sv, len, "sv", 0, 0}};
+                                       {&sv[0], sizeof(int), "sv", 2, sizeof(int)}};
 
 
     COMMON_FUZZ

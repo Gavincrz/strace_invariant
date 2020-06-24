@@ -204,7 +204,7 @@ FUZZ_FUNC(poll)
     unsigned int len = sizeof(struct pollfd) * nfds;
     struct pollfd* fds = (struct pollfd *)malloc(len);
 
-    tfetch_mem(tcp, tcp->u_arg[0], len, fds);
+    umoven(tcp, tcp->u_arg[0], len, fds);
 
     r_set rlist[NUM_RET_POLL] = {{&ret, sizeof(int), "ret", 0, 0},
                                  {fds, len, "fds", 0, 0}};

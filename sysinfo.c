@@ -86,7 +86,7 @@ FUZZ_FUNC(sysinfo)
     kernel_long_t ret = tcp->u_rval;
     unsigned int len = sizeof(struct sysinfo);
     struct sysinfo fetch_info;
-    tfetch_mem(tcp, tcp->u_arg[0], len, &fetch_info);
+    umoven(tcp, tcp->u_arg[0], len, &fetch_info);
 
     r_set rlist[NUM_RET_SYSINFO] = {{&ret, sizeof(int), "ret", 0, 0},
                                  {&fetch_info, len, "info", 0, 0}};

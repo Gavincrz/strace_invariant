@@ -80,7 +80,7 @@ FUZZ_FUNC(getdents)
     // read the original data
     unsigned int len = sizeof(char) * tcp->u_arg[2];
     void* buf = malloc(len);
-    tfetch_mem(tcp, tcp->u_arg[1], len, buf);
+    umoven(tcp, tcp->u_arg[1], len, buf);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETDENTS] = {{&ret, sizeof(int), "ret", 0, 0},

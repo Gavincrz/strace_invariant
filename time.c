@@ -120,7 +120,7 @@ FUZZ_FUNC(nanosleep)
     // read the original data
     unsigned int len = sizeof(struct timespec);
     struct timespec fetch_rem;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_rem);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_rem);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_NANOSLEEP] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -148,7 +148,7 @@ FUZZ_FUNC(clock_gettime)
     // read the original data
     unsigned int len = sizeof(struct timespec);
     struct timespec fetch_rem;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_rem);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_rem);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_NANOSLEEP] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -221,7 +221,7 @@ FUZZ_FUNC(setitimer)
     // read the original data
     unsigned int len = sizeof(struct itimerval);
     struct itimerval fetch_old;
-    tfetch_mem(tcp, tcp->u_arg[2], len, &fetch_old);
+    umoven(tcp, tcp->u_arg[2], len, &fetch_old);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_SETITIMER] = {{&ret, sizeof(int), "ret", 0, 0},

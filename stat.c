@@ -49,7 +49,7 @@ FUZZ_FUNC(stat)
     // read the original data
     unsigned int len = sizeof(struct stat);
     struct stat fetch_stat;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_stat);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_STAT] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -207,7 +207,7 @@ FUZZ_FUNC(lstat)
     // read the original data
     unsigned int len = sizeof(struct stat);
     struct stat fetch_stat;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_stat);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_LSTAT] = {{&ret, sizeof(int), "ret", 0, 0},
@@ -247,7 +247,7 @@ FUZZ_FUNC(fstat)
     // read the original data
     unsigned int len = sizeof(struct stat);
     struct stat fetch_stat;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_stat);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_stat);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_FSTAT] = {{&ret, sizeof(int), "ret", 0, 0},

@@ -58,7 +58,7 @@ FUZZ_FUNC(statfs)
     // read the original data
     unsigned int len = sizeof(struct statfs);
     struct statfs fetch_buf;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_buf);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_buf);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_STATFS] = {{&ret, sizeof(int), "ret", 0, 0},

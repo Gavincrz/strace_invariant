@@ -200,7 +200,7 @@ FUZZ_FUNC(prlimit64)
     unsigned int len = sizeof(struct rlimit);
     struct rlimit limitbuf;
     if (tcp->u_arg[3] != 0) {
-        tfetch_mem(tcp, tcp->u_arg[3], len, &limitbuf);
+        umoven(tcp, tcp->u_arg[3], len, &limitbuf);
     }
     kernel_long_t ret = tcp->u_rval;
 

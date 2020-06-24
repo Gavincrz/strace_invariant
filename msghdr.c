@@ -527,7 +527,7 @@ FUZZ_FUNC(recvmsg)
     // read the original data
     unsigned int len = sizeof(struct msghdr);
     struct msghdr fetch_hdr;
-    tfetch_mem(tcp, tcp->u_arg[1], len, &fetch_hdr);
+    umoven(tcp, tcp->u_arg[1], len, &fetch_hdr);
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_RECVMSG] = {{&ret, sizeof(ssize_t), "ret", 0, 0},
