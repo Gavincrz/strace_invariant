@@ -1319,11 +1319,11 @@ FUZZ_FUNC(getsockopt)
 
     // read the original data
     socklen_t optlen, saved;
-    tfetch_mem_ignore_syserror(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
+    umoven(tcp, tcp->u_arg[4], sizeof(socklen_t), &optlen);
 
     saved = get_tcb_priv_ulong(tcp);
     void *optval = malloc(saved);
-    tfetch_mem_ignore_syserror(tcp, tcp->u_arg[3], saved, optval);
+    umoven(tcp, tcp->u_arg[3], saved, optval);
 
     kernel_long_t ret = tcp->u_rval;
 
