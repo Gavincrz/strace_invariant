@@ -368,8 +368,9 @@ void fuzz_with_random(void* buf, int size) {
 
     memset(buf, 0, size);
 
-    if (read(random_fd, buf, rand_size) != size) {
-        perror_msg_and_die("read from random failed!");
+    ssize_t read_ret = read(random_fd, buf, rand_size);
+    if (read_ret != size) {
+        perror_msg_and_die("read from random failed!, read_ret:%ld, size=%d", read_ret, size);
     }
 }
 
