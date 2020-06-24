@@ -380,7 +380,7 @@ void fuzz_with_random_file(void* buf, int size, char* filename) {
 
     if (ret == -1) { // stat failed
         if (errno == ENOENT) { // file dose not exist, create one
-            int fd = open(filename, O_RDWR|O_CREAT);
+            int fd = open(filename, O_RDWR|O_CREAT, 0666);
             if (fd == -1) {
                 perror_msg_and_die("can not create file %s", filename);
             }
@@ -389,7 +389,7 @@ void fuzz_with_random_file(void* buf, int size, char* filename) {
             // write the content to file
             ssize_t write_ret = write(fd, buf, size);
             if (write_ret != size) {
-                perror_msg_and_die("write value failed, size = %d, retsize = %d", size, write_ret);
+                perror_msg_and_die("write value failed, size = %d, retsize = %ld", size, write_ret);
             }
             close(fd);
         }
@@ -410,14 +410,14 @@ void fuzz_with_random_file(void* buf, int size, char* filename) {
             int fd = open(filename, O_RDWR | O_APPEND);
             ssize_t write_ret = write(fd, tempbuf, append_size);
             if (write_ret != append_size) {
-                perror_msg_and_die("append file failed, size = %d, write = %d", size, write_ret);
+                perror_msg_and_die("append file failed, size = %d, write = %ld", size, write_ret);
             }
             // then read the file from beginning to the targe buf
             lseek(fd, 0, SEEK_SET);
 
             ssize_t read_ret = read(fd, buf, size);
             if (read_ret != size) {
-                perror_msg_and_die("read value after append failed, size = %d, retsize = %d", size, read_ret);
+                perror_msg_and_die("read value after append failed, size = %d, retsize = %ld", size, read_ret);
             }
             close(fd);
             free(tempbuf);
@@ -426,7 +426,7 @@ void fuzz_with_random_file(void* buf, int size, char* filename) {
             int fd = open(filename, O_RDWR);
             ssize_t read_ret = read(fd, buf, size);
             if (read_ret != size) {
-                perror_msg_and_die("read value failed, size = %d, retsize = %d", size, read_ret);
+                perror_msg_and_die("read value failed, size = %d, retsize = %ld", size, read_ret);
             }
             close(fd);
         }
