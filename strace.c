@@ -1642,7 +1642,7 @@ void parse_and_store_ref_val(char* str_val, ref_v *ref_value)
     }
     else if (strstr(str_val, "RAND")) { // speicify a random file name
         ref_value->type = R_TYPE_RANDOM;
-        strncpy(ref_value->file, str_val, 20);
+        strncpy(ref_value->file, str_val, 40);
     }
     else {
         ref_value->type = R_TYPE_VAL;
