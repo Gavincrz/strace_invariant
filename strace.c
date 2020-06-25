@@ -364,10 +364,10 @@ die(void)
 	if (strace_tracer_pid == getpid()) {
 		cflag = 0;
 		cleanup();
-		exit(1);
+		exit(511);
 	}
 
-	_exit(1);
+	_exit(511);
 }
 
 static void
