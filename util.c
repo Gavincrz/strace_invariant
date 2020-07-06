@@ -525,12 +525,19 @@ void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry
             error_func_msg_and_die("filed count not equal rlist");
         }
         for (int j = 0; j < ref->field_count; j++) {
+            if (j == 0 && ref->ref_values[j].type == R_TYPE_VAL) {
+                rlist[j].size = sizeof(long);
+            }
             r_set* target = &(rlist[j]);
             fuzz_one_field_with_reference(target, &(ref->ref_values[j]), fptr);
         }
         tcp->ret_modified = 1;
     }
     else { // fuzz specific field
+        // when fuzzing the return value with value, always use long size
+        if (field_index == 0 && ref->ref_values[field_index].type == R_TYPE_VAL) {
+            rlist[field_index].size = sizeof(long);
+        }
         r_set* target = &(rlist[field_index]);
         fuzz_one_field_with_reference(target, &(ref->ref_values[field_index]), fptr);
         if (field_index == 0) {
