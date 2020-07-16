@@ -1696,7 +1696,7 @@ init(int argc, char *argv[])
 #ifdef ENABLE_STACKTRACE
 	    "kn:N:Q:"
 #endif
-	    "a:Ab:B:cCdDe:E:fFg:GhH:iI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
+	    "aAb:B:cCdDe:E:fFg:GhH:iI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 //			acolumn = string_to_uint(optarg);
