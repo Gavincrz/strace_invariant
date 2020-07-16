@@ -86,6 +86,7 @@ bool after_accept = false;
 bool accept_called = false;
 int rand_fd = -1;
 bool cov_test = false;
+bool overhead = false;
 
 int reference_count = 0;
 bool recursive_fuzz = false;
@@ -1698,9 +1699,10 @@ init(int argc, char *argv[])
 	    "a:Ab:B:cCdDe:E:fFg:GhH:iI:j:J:l:K:L:mMo:O:p:P:qrR:s:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
-			acolumn = string_to_uint(optarg);
-			if (acolumn < 0)
-				error_opt_arg(c, optarg);
+//			acolumn = string_to_uint(optarg);
+//			if (acolumn < 0)
+//				error_opt_arg(c, optarg);
+            overhead = true;
 			break;
 		case 'A':
 			open_append = true;

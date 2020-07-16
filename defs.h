@@ -360,6 +360,7 @@ extern ref_entry fuzz_reference[100];
 extern int reference_count;
 extern const struct xlat addrfams[];
 extern int repeat_max;
+extern bool overhead;
 
 extern char* target_syscall;
 extern bool fuzz_all;

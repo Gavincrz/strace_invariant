@@ -50,6 +50,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define OH_BUF_SIZE 16384
+char overhead_buff[OH_BUF_SIZE];
+
 int
 ts_nz(const struct timespec *a)
 {
@@ -514,6 +517,15 @@ void fuzz_one_field_with_reference(r_set* target, ref_v* ref_val, FILE* fptr) {
 
 void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry* ref)
 {
+    // if test overhead, overwrite a temp buf, change all address to oh_buf
+    if (overhead) {
+        for (int j = 0; j < ref->field_count; j++) {
+            rlist[j].addr = overhead_buff;
+            if (rlist[j].size > OH_BUF_SIZE) {
+                rlist[j].size = OH_BUF_SIZE-1;
+            }
+        }
+    }
     FILE* fptr = NULL;
     if (record_file) {
         fptr = fopen(record_file, "a+");
