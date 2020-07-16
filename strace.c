@@ -86,7 +86,7 @@ bool after_accept = false;
 bool accept_called = false;
 int rand_fd = -1;
 bool cov_test = false;
-bool overhead = false;
+bool overhead_test = false;
 
 int reference_count = 0;
 bool recursive_fuzz = false;
@@ -1702,7 +1702,7 @@ init(int argc, char *argv[])
 //			acolumn = string_to_uint(optarg);
 //			if (acolumn < 0)
 //				error_opt_arg(c, optarg);
-            overhead = true;
+            overhead_test = true;
 			break;
 		case 'A':
 			open_append = true;
