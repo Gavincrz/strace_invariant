@@ -520,7 +520,7 @@ void fuzz_with_reference(struct tcb *tcp, r_set *rlist, int num_field, ref_entry
     // if test overhead, overwrite a temp buf, change all address to oh_buf
     if (overhead_test) {
         for (int j = 0; j < num_field; j++) {
-            rlist[j].addr = overhead_buff;
+            rlist[j].addr = &overhead_buff;
             if (rlist[j].size > OH_BUF_SIZE) {
                 rlist[j].size = OH_BUF_SIZE-1;
             }
