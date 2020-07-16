@@ -50,7 +50,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define OH_BUF_SIZE 16384
+#define OH_BUF_SIZE 81920
 char overhead_buff[OH_BUF_SIZE];
 
 int
