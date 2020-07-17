@@ -4,7 +4,7 @@
 [  3] = { 1,	TD,		SEN_FUZZ(close),			"close"			},
 [  4] = { 2,	TF|TST|TSTA,	SEN_FUZZ(stat),			"stat"			},
 [  5] = { 2,	TD|TFST|TSTA,	SEN_FUZZ(fstat),			"fstat"			},
-[  6] = { 2,	TF|TLST|TSTA,	SEN(lstat),			"lstat"			},
+[  6] = { 2,	TF|TLST|TSTA,	SEN_FUZZ(lstat),			"lstat"			},
 [  7] = { 3,	TD,		SEN_FUZZ(poll),			"poll"			},
 [  8] = { 3,	TD,		SEN_FUZZ(lseek),			"lseek"			},
 [  9] = { 6,	TD|TM|SI,	SEN(mmap),			"mmap"			},
