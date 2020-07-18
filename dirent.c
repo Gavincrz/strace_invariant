@@ -29,7 +29,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#define _GNU_SOURCE
 #include "defs.h"
+#include <dirent.h>     /* Defines DT_* constants */
 
 #include DEF_MPERS_TYPE(kernel_dirent)
 
