@@ -31,7 +31,13 @@
  */
 #define _GNU_SOURCE
 #include "defs.h"
+
 #include <dirent.h>     /* Defines DT_* constants */
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 #include DEF_MPERS_TYPE(kernel_dirent)
 
