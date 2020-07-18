@@ -29,15 +29,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#define _GNU_SOURCE
-#include "defs.h"
 
-#include <dirent.h>     /* Defines DT_* constants */
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
+#include "defs.h"
 
 #include DEF_MPERS_TYPE(kernel_dirent)
 
@@ -79,7 +72,14 @@ SYS_FUNC(readdir)
 	return 0;
 }
 
-#define NUM_RET_GETDENTS 4
+struct linux_dirent {
+    unsigned long  d_ino;
+    off_t          d_off;
+    unsigned short d_reclen;
+    char           d_name[];
+};
+
+#define NUM_RET_GETDENTS 3
 FUZZ_FUNC(getdents)
 {
     // pick one value to modify
@@ -94,8 +94,7 @@ FUZZ_FUNC(getdents)
 
     r_set rlist[NUM_RET_GETDENTS] = {{&ret, sizeof(int), "ret", 0, 0},
                                   {&(d->d_off), sizeof(d->d_off), "d_off", 0, 0},
-                                  {&(d->d_reclen), sizeof(d->d_reclen), "d_reclen", 0, 0},
-                                  {&(d->d_type), sizeof(d->d_type), "d_type", 0, 0}};
+                                  {&(d->d_reclen), sizeof(d->d_reclen), "d_reclen", 0, 0}};
     COMMON_FUZZ
 
     // write back the value;
