@@ -71,7 +71,7 @@ SYS_FUNC(readdir)
 	return 0;
 }
 
-#define NUM_RET_GETDENTS 2
+#define NUM_RET_GETDENTS 4
 FUZZ_FUNC(getdents)
 {
     // pick one value to modify
@@ -82,9 +82,12 @@ FUZZ_FUNC(getdents)
     void* buf = malloc(len);
     umoven(tcp, tcp->u_arg[1], len, buf);
     kernel_long_t ret = tcp->u_rval;
+    struct linux_dirent *d = (struct linux_dirent *) (buf);
 
     r_set rlist[NUM_RET_GETDENTS] = {{&ret, sizeof(int), "ret", 0, 0},
-                                  {buf, len, "dirp", 0, 0}};
+                                  {&(d->d_off), sizeof(d->d_off), "d_off", 0, 0},
+                                  {&(d->d_reclen), sizeof(d->d_reclen), "d_reclen", 0, 0},
+                                  {&(d->d_type), sizeof(d->d_type), "d_type", 0, 0}};
     COMMON_FUZZ
 
     // write back the value;
