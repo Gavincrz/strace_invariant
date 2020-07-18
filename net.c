@@ -349,6 +349,7 @@ SYS_FUNC(accept)
 
 }
 
+#undef NUM_RET_ACCEPT
 #define NUM_RET_ACCEPT 2
 FUZZ_FUNC(accept)
 {
@@ -565,7 +566,7 @@ INV_FUNC(recvfrom)
 
 
 			m_set mlist[NUM_RET_RECVFROM] = {{&ret, sizeof(int), VARIABLE_NORMAL},
-											 {buf, ulen, VARIABLE_NORMAL},
+//											 {buf, ulen, VARIABLE_NORMAL},
 											 {&rlen, sizeof(socklen_t), VARIABLE_NORMAL}};
 
 			fuzzing_return_value(ibuf, mlist, num_ret);
@@ -671,8 +672,8 @@ INV_FUNC(getsockname)
 
 			tprintf("\noriginal rlen: %d -> ", rlen);
 			/* tamper code accept */
-			m_set mlist[NUM_RET_GETSOCKNAME] = {{buf, ulen, VARIABLE_NORMAL},\
-										{&rlen, sizeof(socklen_t), VARIABLE_NORMAL},\
+			m_set mlist[NUM_RET_GETSOCKNAME] = {{buf, ulen, VARIABLE_NORMAL},
+//										{&rlen, sizeof(socklen_t), VARIABLE_NORMAL},
                                         {&ret, sizeof(int), VARIABLE_FD}};
 			fuzzing_return_value(ibuf, mlist, num_ret);
 			tprintf("%d\n", rlen);
