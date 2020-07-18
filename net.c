@@ -349,7 +349,7 @@ SYS_FUNC(accept)
 
 }
 
-#define NUM_RET_ACCEPT 3
+#define NUM_RET_ACCEPT 2
 FUZZ_FUNC(accept)
 {
     // pick one value to modify
@@ -364,7 +364,7 @@ FUZZ_FUNC(accept)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_ACCEPT] = {{&ret, sizeof(int), "ret", 0, 0},
-                                        {buf, ulen, "addr", 0, 0},
+//                                        {buf, ulen, "addr", 0, 0},
                                         {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
@@ -393,7 +393,7 @@ FUZZ_FUNC(accept4)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_ACCEPT] = {{&ret, sizeof(int), "ret", 0, 0},
-                                   {buf, ulen, "addr", 0, 0},
+//                                   {buf, ulen, "addr", 0, 0},
                                    {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
@@ -507,7 +507,7 @@ SYS_FUNC(recv)
 	return 0;
 }
 
-#define NUM_RET_RECVFROM 3
+#define NUM_RET_RECVFROM 2
 FUZZ_FUNC(recvfrom)
 {
     // pick one value to modify
@@ -522,7 +522,7 @@ FUZZ_FUNC(recvfrom)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_RECVFROM] = {{&ret, sizeof(ssize_t), "ret", 0, 0},
-                                   {buf, ulen, "addr", 0, 0},
+//                                   {buf, ulen, "addr", 0, 0},
                                    {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
@@ -645,7 +645,7 @@ SYS_FUNC(getsockname)
 
 
 
-#define NUM_RET_GETSOCKNAME 3
+#define NUM_RET_GETSOCKNAME 2
 INV_FUNC(getsockname)
 {
 
@@ -694,7 +694,7 @@ INV_FUNC(getsockname)
 	}
 }
 #undef NUM_RET_GETSOCKNAME
-#define NUM_RET_GETSOCKNAME 3
+#define NUM_RET_GETSOCKNAME 2
 FUZZ_FUNC(getsockname)
 {
     // pick one value to modify
@@ -709,7 +709,7 @@ FUZZ_FUNC(getsockname)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
-                                        {buf, ulen, "addr", 0, 0},
+//                                        {buf, ulen, "addr", 0, 0},
                                         {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
@@ -738,7 +738,7 @@ FUZZ_FUNC(getpeername)
     kernel_long_t ret = tcp->u_rval;
 
     r_set rlist[NUM_RET_GETSOCKNAME] = {{&ret, sizeof(int), "ret", 0, 0},
-                                        {buf, ulen, "addr", 0, 0},
+//                                        {buf, ulen, "addr", 0, 0},
                                         {&addrlen, sizeof(socklen_t), "addrlen", 0, 0}};
     COMMON_FUZZ
 
